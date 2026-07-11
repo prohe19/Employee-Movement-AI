@@ -38,5 +38,13 @@ export const env = {
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5",
 
+  // Absolute path to a built frontend (dist). When set and present, the API
+  // also serves the web UI, so the whole app deploys as a single service.
+  frontendDist: process.env.FRONTEND_DIST ?? "",
+
+  // Path to a Chromium/Chrome executable for Puppeteer. Set in Docker/production
+  // where Chromium is installed via the system package manager.
+  puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? "",
+
   isProduction: process.env.NODE_ENV === "production",
 };

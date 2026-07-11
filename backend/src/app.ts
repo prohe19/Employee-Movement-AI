@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import express from "express";
 import cors from "cors";
@@ -43,6 +44,25 @@ export function createApp() {
   app.use("/settings", settingsRoutes);
   app.use("/users", userRoutes);
   app.use("/dashboard", dashboardRoutes);
+
+  // Single-service deployment: serve the built frontend and fall back to
+  // index.html for client-side routes. Enabled when FRONTEND_DIST points at a
+  // built frontend (e.g. in the Docker image / production).
+  const frontendDist = env.frontendDist;
+  if (frontendDist && fs.existsSync(path.join(frontendDist, "index.html"))) {
+    app.use(express.static(frontendDist));
+    app.get("*", (req, res, next) => {
+      // Let unmatched API/asset routes 404 as JSON instead of returning the SPA.
+      if (
+        req.path.startsWith("/uploads") ||
+        req.path.startsWith("/assets") ||
+        req.method !== "GET"
+      ) {
+        return next();
+      }
+      res.sendFile(path.join(frontendDist, "index.html"));
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);

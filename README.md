@@ -47,6 +47,12 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000`, so cookies stay
 with the seeded admin account to reach the dashboard, create flow, records, templates, signatories,
 and settings.
 
+## Put it online (deploy)
+
+To host it for your team at a real web link, see **[DEPLOY.md](DEPLOY.md)** — a click-by-click
+Railway walkthrough. The app is packaged (via the root `Dockerfile`) to deploy as a single service
+plus a PostgreSQL database, with the PDF engine's Chromium bundled in.
+
 ## What's implemented
 
 - **Auth** — email/password + Google OAuth, JWT httpOnly-cookie sessions, `hr_user` / `admin` roles.
