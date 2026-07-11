@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  hr_user
+  admin
+}
+
+enum AnnouncementStatus {
+  Draft
+  RequiresReview
+  ReadyToGenerate
+  Finalized
+  Published
+  Cancelled
+}
+
+enum MovementType {
+  Transfer
+  TemporaryAssignment
+  PermanentAssignment
+  Rotation
+  LateralMovement
+  ChangeOfPosition
+  ChangeOfLocation
+  ChangeOfCompany
+  ActingAssignment
+  EndOfAssignment
+  Other
+}
+
+enum ExtractionConfidence {
+  high
+  review
+  missing
+}
+
+enum ReviewStatus {
+  pending
+  reviewed
+}
+
+model User {
+  id           String   @id @default(uuid())
+  fullName     String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String?
+  googleSub    String?  @unique
+  role         Role     @default(hr_user)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  announcements Announcement[] @relation("CreatedByUser")
+  movementForms MovementForm[]
+  activityLogs  ActivityLog[]
+
+  @@map("users")
+}
+
+model Announcement {
+  id                 String             @id @default(uuid())
+  number             String             @unique
+  announcementDate   DateTime
+  city               String             @default("Jakarta")
+  templateId         String?
+  movementType       MovementType
+  status             AnnouncementStatus @default(Draft)
+  narrationText      String?
+  effectiveSentence  String?
+  signatoryId        String?
+  notes              String?
+  createdBy          String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  pdfUrl             String?
+
+  creator       User                  @relation("CreatedByUser", fields: [createdBy], references: [id])
+  template      Template?             @relation(fields: [templateId], references: [id])
+  signatory     Signatory?            @relation(fields: [signatoryId], references: [id])
+  employees     AnnouncementEmployee[]
+  movementForms MovementForm[]
+
+  @@index([status])
+  @@index([movementType])
+  @@map("announcements")
+}
+
+model AnnouncementEmployee {
+  id                  String        @id @default(uuid())
+  announcementId       String
+  employeeName         String
+  employeeId           String?
+  movementType         MovementType?
+  currentPosition      String?
+  newPosition          String?
+  currentJs            Int?
+  newJs                Int?
+  currentDepartment    String?
+  newDepartment        String?
+  currentDivision      String?
+  newDivision          String?
+  currentCostCenter    String?
+  newCostCenter        String?
+  currentCompany       String?
+  newCompany           String?
+  currentLocation      String?
+  newLocation          String?
+  effectiveDate        DateTime?
+  assignmentStartDate  DateTime?
+  assignmentEndDate    DateTime?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@map("announcement_employees")
+}
+
+model MovementForm {
+  id                   String        @id @default(uuid())
+  announcementId       String?
+  fileUrl              String
+  storageKey           String
+  fileName             String
+  fileSize             Int
+  mimeType             String
+  pageCount            Int?
+  extractionJson       Json?
+  extractionConfidence Float?
+  reviewStatus         ReviewStatus  @default(pending)
+  uploadedBy           String
+  createdAt            DateTime      @default(now())
+
+  announcement Announcement? @relation(fields: [announcementId], references: [id])
+  uploader     User          @relation(fields: [uploadedBy], references: [id])
+
+  @@map("movement_forms")
+}
+
+model Template {
+  id                 String   @id @default(uuid())
+  name               String
+  code               String   @unique
+  version             Int      @default(1)
+  companyScope       String?
+  movementTypeScope  MovementType?
+  isActive           Boolean  @default(true)
+  fileUrl            String?
+  placeholders       Json?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  announcements Announcement[]
+
+  @@map("templates")
+}
+
+model Signatory {
+  id                String   @id @default(uuid())
+  name              String
+  title             String
+  jsMin             Int?
+  jsMax             Int?
+  isActive          Boolean  @default(true)
+  signatureImageUrl String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  announcements Announcement[]
+
+  @@map("signatories")
+}
+
+model Setting {
+  id                 Int      @id @default(1)
+  numberingFormat    String   @default("{seq}/ A/ ITM/ HR/ {month}/ {year}")
+  defaultCity        String   @default("Jakarta")
+  defaultCompany     String   @default("PT Indo Tambangraya Megah, Tbk")
+  defaultTemplateId  String?
+  dateFormat         String   @default("MMMM d, yyyy")
+  retentionPolicy    String?
+  updatedAt          DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
