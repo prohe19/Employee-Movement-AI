@@ -30,6 +30,9 @@ export function createApp() {
     app.use("/uploads", express.static(path.resolve(env.localStorageDir)));
   }
 
+  // Static assets (e.g. the official ITM letterhead used by the letter preview).
+  app.use("/assets", express.static(path.resolve(__dirname, "..", "assets")));
+
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
   app.use("/auth", authRoutes);
