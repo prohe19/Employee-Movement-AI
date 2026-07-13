@@ -1,7 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { hashPassword } from "../src/services/authService";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+// Kept self-contained (no src/ import) so it runs from the production image,
+// where only prisma/ + dist/ are present. Mirrors authService.hashPassword.
+function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
 
 async function main() {
   await prisma.setting.upsert({
