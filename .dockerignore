@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.local
+**/*.log
+**/.git
+backend/uploads/*
+!backend/uploads/.gitkeep
+design_handoff_movement_announcement
+*.md

@@ -1,4 +1,5 @@
 import puppeteer, { Browser } from "puppeteer";
+import { env } from "../config/env";
 import { renderLetterHtml, type LetterData } from "./letterTemplateService";
 
 let browserPromise: Promise<Browser> | null = null;
@@ -8,6 +9,8 @@ function getBrowser(): Promise<Browser> {
     browserPromise = puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      // In Docker/production, use the system-installed Chromium.
+      executablePath: env.puppeteerExecutablePath || undefined,
     });
   }
   return browserPromise;
