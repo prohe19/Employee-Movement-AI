@@ -23,8 +23,10 @@ export const env = {
 
   storageDriver: (process.env.STORAGE_DRIVER as "local" | "s3") ?? "local",
   localStorageDir: process.env.LOCAL_STORAGE_DIR ?? "./uploads",
-  publicUploadsBaseUrl:
-    process.env.PUBLIC_UPLOADS_BASE_URL ?? "http://localhost:4000/uploads",
+  // Default to a same-origin relative path so stored file URLs work on any host
+  // (the API serves /uploads). Override with an absolute URL only when files are
+  // served from a different origin (e.g. a CDN or separate storage domain).
+  publicUploadsBaseUrl: process.env.PUBLIC_UPLOADS_BASE_URL ?? "/uploads",
 
   s3: {
     endpoint: process.env.S3_ENDPOINT ?? "",
@@ -36,7 +38,7 @@ export const env = {
   },
 
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
-  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5",
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
 
   // Absolute path to a built frontend (dist). When set and present, the API
   // also serves the web UI, so the whole app deploys as a single service.
