@@ -1,19 +1,17 @@
-import type { Confidence, ExtractionResult, MovementType } from "../../api/types";
+import type { MovementType } from "../../api/types";
 
-/** An editable employee row in the review step, carrying per-field confidence for the dots. */
+/** An editable employee row entered manually in the movement-details step. */
 export interface EditableEmployee {
+  title: string;
   employeeName: string;
   employeeId: string;
   currentPosition: string;
   newPosition: string;
   currentJs: string;
-  newJs: string;
   currentDepartment: string;
   newDepartment: string;
   currentDivision: string;
   newDivision: string;
-  currentCostCenter: string;
-  newCostCenter: string;
   currentCompany: string;
   newCompany: string;
   currentLocation: string;
@@ -21,14 +19,15 @@ export interface EditableEmployee {
   effectiveDate: string;
   assignmentStartDate: string;
   assignmentEndDate: string;
-  confidence: Partial<Record<keyof Omit<EditableEmployee, "confidence">, Confidence>>;
 }
 
+/** Maximum number of employee movements allowed under one announcement letter. */
+export const MAX_EMPLOYEES = 3;
+
+/** Honorific options for the title dropdown. */
+export const TITLE_OPTIONS = ["Mr.", "Ms.", "Mrs."] as const;
+
 export interface WizardState {
-  formId: string | null;
-  fileName: string | null;
-  fileUrl: string | null;
-  pageCount: number | null;
   announcementNumber: string;
   announcementDate: string;
   city: string;
@@ -39,22 +38,18 @@ export interface WizardState {
   announcementId: string | null;
 }
 
-const dateField = (v: string | null) => v ?? "";
-
 export function emptyEmployee(): EditableEmployee {
   return {
+    title: "Mr.",
     employeeName: "",
     employeeId: "",
     currentPosition: "",
     newPosition: "",
     currentJs: "",
-    newJs: "",
     currentDepartment: "",
     newDepartment: "",
     currentDivision: "",
     newDivision: "",
-    currentCostCenter: "",
-    newCostCenter: "",
     currentCompany: "",
     newCompany: "",
     currentLocation: "",
@@ -62,52 +57,6 @@ export function emptyEmployee(): EditableEmployee {
     effectiveDate: "",
     assignmentStartDate: "",
     assignmentEndDate: "",
-    confidence: {},
-  };
-}
-
-/** Maps the AI extraction result into editable employee rows + a movement type. */
-export function extractionToEmployees(result: ExtractionResult): {
-  employees: EditableEmployee[];
-  movementType: MovementType;
-} {
-  const employees = result.employees.map((emp) => {
-    const row = emptyEmployee();
-    const set = <K extends keyof Omit<EditableEmployee, "confidence">>(
-      key: K,
-      raw: { value: unknown; confidence: Confidence }
-    ) => {
-      row[key] = (raw.value === null || raw.value === undefined ? "" : String(raw.value)) as EditableEmployee[K];
-      row.confidence[key] = raw.confidence;
-    };
-    set("employeeName", emp.employeeName);
-    set("employeeId", emp.employeeId);
-    set("currentPosition", emp.currentPosition);
-    set("newPosition", emp.newPosition);
-    set("currentJs", emp.currentJs);
-    set("newJs", emp.newJs);
-    set("currentDepartment", emp.currentDepartment);
-    set("newDepartment", emp.newDepartment);
-    set("currentDivision", emp.currentDivision);
-    set("newDivision", emp.newDivision);
-    set("currentCostCenter", emp.currentCostCenter);
-    set("newCostCenter", emp.newCostCenter);
-    set("currentCompany", emp.currentCompany);
-    set("newCompany", emp.newCompany);
-    set("currentLocation", emp.currentLocation);
-    set("newLocation", emp.newLocation);
-    row.effectiveDate = dateField(emp.effectiveDate.value);
-    row.confidence.effectiveDate = emp.effectiveDate.confidence;
-    row.assignmentStartDate = dateField(emp.assignmentStartDate.value);
-    row.confidence.assignmentStartDate = emp.assignmentStartDate.confidence;
-    row.assignmentEndDate = dateField(emp.assignmentEndDate.value);
-    row.confidence.assignmentEndDate = emp.assignmentEndDate.confidence;
-    return row;
-  });
-
-  return {
-    employees: employees.length ? employees : [emptyEmployee()],
-    movementType: result.movementType.value ?? "Other",
   };
 }
 
@@ -117,18 +66,16 @@ export function employeeToPayload(emp: EditableEmployee) {
   const str = (v: string) => (v.trim() === "" ? null : v.trim());
   const date = (v: string) => (v.trim() === "" ? null : new Date(v).toISOString());
   return {
+    title: str(emp.title),
     employeeName: emp.employeeName.trim(),
     employeeId: str(emp.employeeId),
     currentPosition: str(emp.currentPosition),
     newPosition: str(emp.newPosition),
     currentJs: num(emp.currentJs),
-    newJs: num(emp.newJs),
     currentDepartment: str(emp.currentDepartment),
     newDepartment: str(emp.newDepartment),
     currentDivision: str(emp.currentDivision),
     newDivision: str(emp.newDivision),
-    currentCostCenter: str(emp.currentCostCenter),
-    newCostCenter: str(emp.newCostCenter),
     currentCompany: str(emp.currentCompany),
     newCompany: str(emp.newCompany),
     currentLocation: str(emp.currentLocation),

@@ -16,6 +16,7 @@ const employeeInclude = { employees: true } satisfies Prisma.AnnouncementInclude
 
 function employeeCreateData(emp: EmployeeInput): Prisma.AnnouncementEmployeeCreateWithoutAnnouncementInput {
   return {
+    title: emp.title ?? undefined,
     employeeName: emp.employeeName,
     employeeId: emp.employeeId ?? undefined,
     movementType: emp.movementType ?? undefined,
@@ -106,6 +107,7 @@ export async function updateAnnouncement(
       await tx.announcementEmployee.createMany({
         data: input.employees.map((emp) => ({
           announcementId: id,
+          title: emp.title ?? null,
           employeeName: emp.employeeName,
           employeeId: emp.employeeId ?? null,
           movementType: emp.movementType ?? null,
@@ -219,9 +221,14 @@ export async function narrateAnnouncement(id: string) {
   const result = buildNarration(
     announcement.movementType,
     announcement.employees.map((e) => ({
+      title: e.title,
       employeeName: e.employeeName,
       currentPosition: e.currentPosition,
       newPosition: e.newPosition,
+      currentDepartment: e.currentDepartment,
+      newDepartment: e.newDepartment,
+      currentDivision: e.currentDivision,
+      newDivision: e.newDivision,
       newCompany: e.newCompany,
       newLocation: e.newLocation,
       currentCompany: e.currentCompany,

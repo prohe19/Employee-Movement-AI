@@ -98,6 +98,7 @@ model Announcement {
 model AnnouncementEmployee {
   id                  String        @id @default(uuid())
   announcementId       String
+  title                String?       // Mr. / Ms. / Mrs.
   employeeName         String
   employeeId           String?
   movementType         MovementType?

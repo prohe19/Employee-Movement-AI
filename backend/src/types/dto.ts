@@ -30,6 +30,7 @@ const isoDate = z
 
 export const employeeInputSchema = z.object({
   id: z.string().uuid().optional(),
+  title: z.string().optional().nullable(),
   employeeName: z.string().min(1),
   employeeId: z.string().optional().nullable(),
   movementType: movementTypeEnum.optional().nullable(),

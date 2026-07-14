@@ -169,7 +169,7 @@ export function PreviewStep({ state, onBack }: Props) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, fontFamily: "var(--font-head)" }}>
                 <PrismLogo size={22} glow={false} />
-                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>AI-Generated Narration</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>Generated Narration</span>
               </div>
               <button className="btn-ghost" style={{ height: 30, padding: "0 11px" }} onClick={refresh}>
                 ↻ REGEN

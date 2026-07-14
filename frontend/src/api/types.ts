@@ -82,6 +82,7 @@ export interface MovementForm {
 export interface AnnouncementEmployee {
   id: string;
   announcementId: string;
+  title: string | null;
   employeeName: string;
   employeeId: string | null;
   movementType: MovementType | null;

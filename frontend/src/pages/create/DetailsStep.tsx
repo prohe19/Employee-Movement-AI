@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { InfoNote, TextInput, TextArea } from "../../components/ui";
-import { announcementsApi, formsApi, templatesApi } from "../../api/endpoints";
+import { announcementsApi, templatesApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
 import type { SignatoryResolution, Template } from "../../api/types";
 import { employeeToPayload, WizardState } from "./wizardTypes";
@@ -53,7 +53,6 @@ export function DetailsStep({ state, patch, onBack, onNext }: Props) {
         const { announcement } = await announcementsApi.create(payload);
         announcementId = announcement.id;
         patch({ announcementId, announcementNumber: announcement.number });
-        if (state.formId) await formsApi.link(state.formId, announcementId).catch(() => undefined);
       }
 
       const resolution = await announcementsApi.resolveSignatory(announcementId);
