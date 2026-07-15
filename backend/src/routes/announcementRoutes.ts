@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { Router } from "express";
+import multer from "multer";
 import { asyncHandler } from "../middleware/errorHandler";
 import { requireAuth } from "../middleware/auth";
+import { ApiError } from "../lib/errors";
 import {
   createAnnouncementSchema,
   listAnnouncementsQuerySchema,
@@ -16,9 +20,40 @@ import {
   validateAnnouncementById,
 } from "../services/announcementService";
 import { generateAnnouncementPdf } from "../services/generatePdfService";
+import { generateAnnouncementEmailImage } from "../services/generateEmailImageService";
+import { getStorageDriver } from "../services/storage";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+const PHOTO_EXT: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+};
 
 const router = Router();
 router.use(requireAuth);
+
+router.post(
+  "/photo",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw ApiError.badRequest("No photo uploaded (expected multipart field \"file\")");
+    const ext = PHOTO_EXT[req.file.mimetype];
+    if (!ext) throw ApiError.badRequest("Photo must be a JPEG, PNG, or WebP image.");
+    const storage = getStorageDriver();
+    const key = `photos/${randomUUID()}${ext || path.extname(req.file.originalname)}`;
+    const stored = await storage.save({
+      buffer: req.file.buffer,
+      key,
+      contentType: req.file.mimetype,
+    });
+    res.status(201).json({ url: stored.url, key: stored.key });
+  })
+);
 
 router.get(
   "/",
@@ -83,6 +118,14 @@ router.post(
   "/:id/generate-pdf",
   asyncHandler(async (req, res) => {
     const announcement = await generateAnnouncementPdf(req.params.id, req.user!.id);
+    res.json({ announcement });
+  })
+);
+
+router.post(
+  "/:id/generate-email",
+  asyncHandler(async (req, res) => {
+    const announcement = await generateAnnouncementEmailImage(req.params.id, req.user!.id);
     res.json({ announcement });
   })
 );

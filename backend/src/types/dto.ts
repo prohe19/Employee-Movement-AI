@@ -51,6 +51,8 @@ export const employeeInputSchema = z.object({
   effectiveDate: isoDate.optional().nullable(),
   assignmentStartDate: isoDate.optional().nullable(),
   assignmentEndDate: isoDate.optional().nullable(),
+  photoUrl: z.string().optional().nullable(),
+  photoKey: z.string().optional().nullable(),
 });
 export type EmployeeInput = z.infer<typeof employeeInputSchema>;
 

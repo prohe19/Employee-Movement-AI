@@ -37,6 +37,8 @@ function employeeCreateData(emp: EmployeeInput): Prisma.AnnouncementEmployeeCrea
     effectiveDate: emp.effectiveDate ?? undefined,
     assignmentStartDate: emp.assignmentStartDate ?? undefined,
     assignmentEndDate: emp.assignmentEndDate ?? undefined,
+    photoUrl: emp.photoUrl ?? undefined,
+    photoKey: emp.photoKey ?? undefined,
   };
 }
 
@@ -128,6 +130,8 @@ export async function updateAnnouncement(
           effectiveDate: emp.effectiveDate ?? null,
           assignmentStartDate: emp.assignmentStartDate ?? null,
           assignmentEndDate: emp.assignmentEndDate ?? null,
+          photoUrl: emp.photoUrl ?? null,
+          photoKey: emp.photoKey ?? null,
         })),
       });
     }

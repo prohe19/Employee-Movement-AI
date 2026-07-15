@@ -79,6 +79,13 @@ export const announcementsApi = {
   validate: (id: string) => api.post<ValidationReport>(`/announcements/${id}/validate`),
   generatePdf: (id: string) =>
     api.post<{ announcement: Announcement }>(`/announcements/${id}/generate-pdf`),
+  generateEmail: (id: string) =>
+    api.post<{ announcement: Announcement }>(`/announcements/${id}/generate-email`),
+  uploadPhoto: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.upload<{ url: string; key: string }>("/announcements/photo", form);
+  },
 };
 
 // ---- Templates / Signatories / Settings / Dashboard ----

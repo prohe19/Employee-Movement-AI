@@ -19,6 +19,8 @@ export interface EditableEmployee {
   effectiveDate: string;
   assignmentStartDate: string;
   assignmentEndDate: string;
+  photoUrl: string;
+  photoKey: string;
 }
 
 /** Maximum number of employee movements allowed under one announcement letter. */
@@ -57,6 +59,8 @@ export function emptyEmployee(): EditableEmployee {
     effectiveDate: "",
     assignmentStartDate: "",
     assignmentEndDate: "",
+    photoUrl: "",
+    photoKey: "",
   };
 }
 
@@ -83,5 +87,7 @@ export function employeeToPayload(emp: EditableEmployee) {
     effectiveDate: date(emp.effectiveDate),
     assignmentStartDate: date(emp.assignmentStartDate),
     assignmentEndDate: date(emp.assignmentEndDate),
+    photoUrl: str(emp.photoUrl),
+    photoKey: str(emp.photoKey),
   };
 }

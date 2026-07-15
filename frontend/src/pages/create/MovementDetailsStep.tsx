@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPES } from "../../lib/format";
+import { announcementsApi } from "../../api/endpoints";
+import { ApiError } from "../../api/client";
 import type { MovementType } from "../../api/types";
 import { emptyEmployee, EditableEmployee, MAX_EMPLOYEES, TITLE_OPTIONS, WizardState } from "./wizardTypes";
 
@@ -55,9 +58,31 @@ const GROUPS: { title: string; fields: { key: FieldKey; label: string; type?: st
 ];
 
 export function MovementDetailsStep({ state, patch, onNext }: Props) {
+  const [uploading, setUploading] = useState<Record<number, boolean>>({});
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
   const setEmployee = (index: number, key: FieldKey, value: string) => {
     const employees = state.employees.map((emp, i) => (i === index ? { ...emp, [key]: value } : emp));
     patch({ employees });
+  };
+
+  const setEmployeeFields = (index: number, fields: Partial<EditableEmployee>) => {
+    const employees = state.employees.map((emp, i) => (i === index ? { ...emp, ...fields } : emp));
+    patch({ employees });
+  };
+
+  const handlePhoto = async (index: number, file: File | undefined) => {
+    if (!file) return;
+    setPhotoError(null);
+    setUploading((u) => ({ ...u, [index]: true }));
+    try {
+      const { url, key } = await announcementsApi.uploadPhoto(file);
+      setEmployeeFields(index, { photoUrl: url, photoKey: key });
+    } catch (e) {
+      setPhotoError(e instanceof ApiError ? e.message : "Could not upload photo");
+    } finally {
+      setUploading((u) => ({ ...u, [index]: false }));
+    }
   };
 
   const addEmployee = () => {
@@ -68,7 +93,9 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
     patch({ employees: state.employees.filter((_, i) => i !== index) });
 
   const dateFields = dateFieldsFor(state.movementType);
-  const canContinue = state.employees.every((e) => e.employeeName.trim().length > 0);
+  const canContinue = state.employees.every(
+    (e) => e.employeeName.trim().length > 0 && e.photoUrl.trim().length > 0
+  );
   const atMax = state.employees.length >= MAX_EMPLOYEES;
 
   const labelStyle = { fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,150,190,0.5)", marginBottom: 6, display: "block" };
@@ -106,11 +133,37 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
               )}
             </div>
 
-            {/* identity row: title + name + employee id + current JS */}
+            {/* identity row: photo + title + name + employee id + current JS */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "rgba(177,74,237,0.9)", marginBottom: 10 }}>
                 // EMPLOYEE
               </div>
+
+              {/* required photo for the announcement email image */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+                <div style={{ width: 76, height: 76, borderRadius: "50%", overflow: "hidden", flex: "0 0 auto", border: "2px solid rgba(177,74,237,0.5)", background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {emp.photoUrl ? (
+                    <img src={emp.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <span style={{ fontSize: 26, color: "rgba(255,150,190,0.4)" }}>👤</span>
+                  )}
+                </div>
+                <div>
+                  <label className="btn-ghost" style={{ cursor: "pointer", display: "inline-block", height: 34, lineHeight: "34px", padding: "0 14px" }}>
+                    {uploading[index] ? "UPLOADING…" : emp.photoUrl ? "CHANGE PHOTO" : "UPLOAD PHOTO *"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      style={{ display: "none" }}
+                      onChange={(e) => handlePhoto(index, e.target.files?.[0])}
+                    />
+                  </label>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,150,190,0.5)", marginTop: 6 }}>
+                    Required · square headshot works best (JPEG/PNG/WebP)
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "90px 1.4fr 1fr", gap: 12 }}>
                 <div>
                   <span style={labelStyle}>TITLE</span>
@@ -219,8 +272,10 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
       <div className="alert alert-warn" style={{ marginTop: 16 }}>
         ▲ Enter details exactly as they should appear in the letter. The narration sentence and signatory are generated
         from these fields — no AI, no extra cost. When the current company and site match the new ones, the letter states
-        the company &amp; site once at the end automatically.
+        the company &amp; site once at the end automatically. Each employee photo is required for the announcement email image.
       </div>
+
+      {photoError && <div className="alert alert-error" style={{ marginTop: 12 }}>{photoError}</div>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
         <button className="btn" onClick={onNext} disabled={!canContinue} style={{ minWidth: 240 }}>

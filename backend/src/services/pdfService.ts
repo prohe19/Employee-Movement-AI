@@ -33,6 +33,24 @@ export async function renderLetterPdf(data: LetterData): Promise<Buffer> {
   }
 }
 
+/** Renders an HTML document to a PNG buffer at the given pixel size (default 1280x720). */
+export async function renderHtmlToPng(
+  html: string,
+  width = 1280,
+  height = 720
+): Promise<Buffer> {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width, height, deviceScaleFactor: 2 });
+    await page.setContent(html, { waitUntil: "load" });
+    const png = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width, height } });
+    return Buffer.from(png);
+  } finally {
+    await page.close();
+  }
+}
+
 export async function closePdfEngine(): Promise<void> {
   if (browserPromise) {
     const browser = await browserPromise;

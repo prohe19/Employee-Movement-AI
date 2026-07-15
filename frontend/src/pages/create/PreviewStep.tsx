@@ -20,6 +20,7 @@ export function PreviewStep({ state, onBack }: Props) {
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingEmail, setGeneratingEmail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
@@ -62,6 +63,34 @@ export function PreviewStep({ state, onBack }: Props) {
     }
   };
 
+  const generateEmail = async () => {
+    if (!state.announcementId) return;
+    setGeneratingEmail(true);
+    setError(null);
+    try {
+      const { announcement } = await announcementsApi.generateEmail(state.announcementId);
+      setAnnouncement(announcement);
+      if (announcement.emailImageUrl) window.open(announcement.emailImageUrl, "_blank");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Email image generation failed");
+    } finally {
+      setGeneratingEmail(false);
+    }
+  };
+
+  const EMAIL_TYPES = [
+    "Transfer",
+    "Rotation",
+    "LateralMovement",
+    "ChangeOfPosition",
+    "ChangeOfLocation",
+    "ChangeOfCompany",
+    "TemporaryAssignment",
+    "PermanentAssignment",
+    "ActingAssignment",
+  ];
+  const emailSupported = announcement ? EMAIL_TYPES.includes(announcement.movementType) : false;
+
   const failedRules = validation?.rules.filter((r) => !r.passed) ?? [];
   const ready = validation?.valid && !narration?.blocked;
 
@@ -92,6 +121,11 @@ export function PreviewStep({ state, onBack }: Props) {
         <button className="btn-ghost" onClick={() => navigate("/records")}>
           SAVE &amp; CLOSE
         </button>
+        {emailSupported && (
+          <button className="btn-ghost" onClick={generateEmail} disabled={!ready || generatingEmail}>
+            {generatingEmail ? "GENERATING…" : announcement?.emailImageUrl ? "REGENERATE EMAIL" : "GENERATE EMAIL PNG"}
+          </button>
+        )}
         <button className="btn" onClick={generate} disabled={!ready || generating}>
           {generating ? "GENERATING…" : announcement?.pdfUrl ? "REGENERATE PDF" : "GENERATE PDF"}
         </button>
@@ -223,6 +257,29 @@ export function PreviewStep({ state, onBack }: Props) {
             <a href={announcement.pdfUrl} target="_blank" rel="noreferrer" className="btn-ghost" style={{ textAlign: "center" }}>
               ↓ OPEN GENERATED PDF
             </a>
+          )}
+
+          {emailSupported && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "1px solid rgba(177,74,237,0.28)", background: "rgba(177,74,237,0.03)", fontFamily: "var(--font-mono)", marginTop: 6 }}>
+                <span style={{ fontSize: 11.5, color: "var(--text)", fontWeight: 700 }}>BODY EMAIL IMAGE</span>
+                <span style={{ fontSize: 10.5, color: "rgba(255,150,190,0.45)" }}>PNG · 1280×720</span>
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(177,74,237,0.2)", padding: 16, display: "flex", justifyContent: "center" }}>
+                {announcement?.emailImageUrl ? (
+                  <img src={announcement.emailImageUrl} alt="Announcement email" style={{ width: "100%", display: "block", boxShadow: "0 12px 30px -10px rgba(0,0,0,0.6)" }} />
+                ) : (
+                  <div style={{ color: "rgba(255,150,190,0.5)", fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "center", padding: 30 }}>
+                    Generate the email PNG to preview the ITM HR announcement graphic.
+                  </div>
+                )}
+              </div>
+              {announcement?.emailImageUrl && (
+                <a href={announcement.emailImageUrl} target="_blank" rel="noreferrer" className="btn-ghost" style={{ textAlign: "center" }}>
+                  ↓ OPEN EMAIL PNG
+                </a>
+              )}
+            </>
           )}
         </div>
       </div>
