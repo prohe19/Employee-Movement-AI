@@ -142,6 +142,20 @@ export async function updateAnnouncement(
   return recomputeStatus(id);
 }
 
+export async function deleteAnnouncement(id: string, userId: string) {
+  const existing = await prisma.announcement.findUnique({ where: { id } });
+  if (!existing) throw ApiError.notFound("Announcement not found");
+
+  await prisma.$transaction(async (tx) => {
+    // Unlink any movement forms so their FK doesn't block the delete; employees
+    // cascade automatically (onDelete: Cascade).
+    await tx.movementForm.updateMany({ where: { announcementId: id }, data: { announcementId: null } });
+    await tx.announcement.delete({ where: { id } });
+  });
+
+  await logActivity({ userId, action: "delete", entity: "announcement", entityId: id });
+}
+
 export async function getAnnouncement(id: string) {
   const announcement = await prisma.announcement.findUnique({
     where: { id },

@@ -17,6 +17,29 @@ export function RecordsPage() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (a: Announcement) => {
+    const label = a.employees[0]?.employeeName ? ` (${a.employees[0].employeeName})` : "";
+    if (
+      !window.confirm(
+        `Delete announcement ${a.number}${label}?\n\nThis permanently removes it and its employee entries. This cannot be undone.`
+      )
+    )
+      return;
+    setDeletingId(a.id);
+    setError(null);
+    try {
+      await announcementsApi.remove(a.id);
+      setData((d) =>
+        d ? { ...d, total: Math.max(0, d.total - 1), items: d.items.filter((x) => x.id !== a.id) } : d
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete announcement");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -98,8 +121,8 @@ export function RecordsPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.5fr 1.3fr 1.2fr 1fr 0.5fr 1.1fr 0.9fr 1fr 1.1fr",
-            minWidth: 1080,
+            gridTemplateColumns: "1.5fr 1.3fr 1.2fr 1fr 0.5fr 1.1fr 0.9fr 1fr 1.1fr 0.7fr",
+            minWidth: 1160,
             padding: "12px 16px",
             background: "rgba(177,74,237,0.08)",
             borderBottom: "1px solid rgba(255,42,109,0.28)",
@@ -119,6 +142,7 @@ export function RecordsPage() {
           <span>EFFECTIVE</span>
           <span>SIGNATORY</span>
           <span>STATUS</span>
+          <span style={{ textAlign: "right" }}>ACTIONS</span>
         </div>
         {loading && <div style={{ padding: 20, fontFamily: "var(--font-mono)", fontSize: 12, color: "rgba(255,150,190,0.5)" }}>Loading…</div>}
         {!loading && data?.items.length === 0 && (
@@ -131,8 +155,8 @@ export function RecordsPage() {
               key={a.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.5fr 1.3fr 1.2fr 1fr 0.5fr 1.1fr 0.9fr 1fr 1.1fr",
-                minWidth: 1080,
+                gridTemplateColumns: "1.5fr 1.3fr 1.2fr 1fr 0.5fr 1.1fr 0.9fr 1fr 1.1fr 0.7fr",
+                minWidth: 1160,
                 alignItems: "center",
                 padding: "13px 16px",
                 borderBottom: "1px solid rgba(177,74,237,0.1)",
@@ -160,6 +184,27 @@ export function RecordsPage() {
                 ) : (
                   <StatusPill status={a.status} />
                 )}
+              </span>
+              <span style={{ textAlign: "right" }}>
+                <button
+                  onClick={() => handleDelete(a)}
+                  disabled={deletingId === a.id}
+                  title="Delete announcement"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(248,113,113,0.4)",
+                    color: "#f87171",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    padding: "5px 10px",
+                    cursor: deletingId === a.id ? "default" : "pointer",
+                    opacity: deletingId === a.id ? 0.5 : 1,
+                  }}
+                >
+                  {deletingId === a.id ? "…" : "DELETE"}
+                </button>
               </span>
             </div>
           );

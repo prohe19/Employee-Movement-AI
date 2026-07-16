@@ -12,6 +12,7 @@ import {
 } from "../types/dto";
 import {
   createAnnouncement,
+  deleteAnnouncement,
   getAnnouncement,
   listAnnouncements,
   narrateAnnouncement,
@@ -87,6 +88,14 @@ router.patch(
     const input = updateAnnouncementSchema.parse(req.body);
     const announcement = await updateAnnouncement(req.params.id, req.user!.id, input);
     res.json({ announcement });
+  })
+);
+
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    await deleteAnnouncement(req.params.id, req.user!.id);
+    res.status(204).end();
   })
 );
 
