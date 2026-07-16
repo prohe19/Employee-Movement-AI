@@ -4,13 +4,18 @@ import { compareDates, formatLetterDate } from "../lib/dateFormat";
 export type Tense = "future" | "present" | "past";
 
 export interface NarrationEmployeeInput {
+  title: string | null; // Mr. / Ms. / Mrs.
   employeeName: string;
   currentPosition: string | null;
   newPosition: string | null;
-  newCompany: string | null;
-  newLocation: string | null;
+  currentDepartment: string | null;
+  newDepartment: string | null;
+  currentDivision: string | null;
+  newDivision: string | null;
   currentCompany: string | null;
+  newCompany: string | null;
   currentLocation: string | null;
+  newLocation: string | null;
   effectiveDate: Date | null;
   assignmentStartDate: Date | null;
   assignmentEndDate: Date | null;
@@ -25,76 +30,110 @@ export function computeTense(effectiveDate: Date, announcementDate: Date): Tense
 
 const ASSIGNMENT_LIKE: MovementType[] = ["TemporaryAssignment", "ActingAssignment"];
 
+/** Movement verb by type and tense — e.g. "is transferred", "will be assigned". */
 function verbsFor(movementType: MovementType): { future: string; present: string; past: string } {
   switch (movementType) {
     case "Transfer":
+    case "ChangeOfPosition":
+    case "ChangeOfLocation":
+    case "ChangeOfCompany":
       return { future: "will be transferred", present: "is transferred", past: "has been transferred" };
     case "TemporaryAssignment":
     case "PermanentAssignment":
     case "ActingAssignment":
       return { future: "will be assigned", present: "is assigned", past: "has been assigned" };
     case "Rotation":
+      return { future: "will be rotated", present: "is rotated", past: "has been rotated" };
     case "LateralMovement":
-      return { future: "will move", present: "moves", past: "has moved" };
-    case "ChangeOfPosition":
-      return {
-        future: "will change position",
-        present: "changes position",
-        past: "has changed position",
-      };
-    case "ChangeOfLocation":
-      return {
-        future: "will change location",
-        present: "changes location",
-        past: "has changed location",
-      };
-    case "ChangeOfCompany":
-      return {
-        future: "will change company",
-        present: "changes company",
-        past: "has changed company",
-      };
+      return { future: "will be moved", present: "is moved", past: "has been moved" };
     default:
-      return { future: "will move", present: "moves", past: "has moved" };
+      return { future: "will be moved", present: "is moved", past: "has been moved" };
   }
 }
 
-/** The bullet sentence for one employee, by movement type + tense (effective date vs announcement date). */
+function clean(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+/** Full name with honorific, e.g. "Mr. Budhi Cahyono". */
+function personName(emp: NarrationEmployeeInput): string {
+  return [clean(emp.title), clean(emp.employeeName)].filter(Boolean).join(" ");
+}
+
+/** Position + department + division, comma-joined (blanks skipped). */
+function roleSegment(position: string | null, department: string | null, division: string | null): string {
+  return [clean(position), clean(department), clean(division)].filter(Boolean).join(", ");
+}
+
+/** "{company} at {site}" — or just one of them when the other is blank. */
+function placeSegment(company: string | null, site: string | null): string {
+  const c = clean(company);
+  const s = clean(site);
+  if (c && s) return `${c} at ${s}`;
+  if (c) return c;
+  if (s) return `at ${s}`;
+  return "";
+}
+
+function sameText(a: string | null, b: string | null): boolean {
+  return clean(a).toLowerCase() === clean(b).toLowerCase();
+}
+
+/**
+ * The bullet sentence for one employee. Follows the real ITM letter format:
+ * "{Mr.} {Name} {verb} from {role}, {company} at {site} to {new role}, {new company} at {new site}."
+ * When the current and new company AND site are identical, the place is stated once at the end:
+ * "{Mr.} {Name} {verb} from {role} to {new role}, {company} at {site}."
+ */
 export function buildMovementSentence(
   movementType: MovementType,
   employee: NarrationEmployeeInput,
   effectiveDate: Date,
   announcementDate: Date
 ): string {
-  const { employeeName, currentPosition, newPosition, newCompany, newLocation } = employee;
-
   if (movementType === "EndOfAssignment") {
     const endDate = employee.assignmentEndDate;
-    const company = employee.currentCompany ?? newCompany ?? "";
-    const location = employee.currentLocation ?? newLocation ?? "";
-    const assignedPosition = currentPosition ?? "";
+    const place = placeSegment(
+      employee.currentCompany ?? employee.newCompany,
+      employee.currentLocation ?? employee.newLocation
+    );
+    const assignedPosition = clean(employee.currentPosition);
     const endDateStr = endDate ? formatLetterDate(endDate) : "";
-    return `${employeeName}'s assignment as ${assignedPosition} at ${company}, ${location} will conclude on ${endDateStr}.`;
+    return `${personName(employee)}'s assignment as ${assignedPosition}${place ? `, ${place}` : ""} will conclude on ${endDateStr}.`;
   }
 
   const tense = computeTense(effectiveDate, announcementDate);
-  const verbs = verbsFor(movementType);
-  const verb = verbs[tense];
+  const verb = verbsFor(movementType)[tense];
 
-  return `${employeeName} ${verb} from ${currentPosition ?? ""} to ${newPosition ?? ""}, ${newCompany ?? ""}, ${newLocation ?? ""}.`;
+  const fromRole = roleSegment(employee.currentPosition, employee.currentDepartment, employee.currentDivision);
+  const toRole = roleSegment(employee.newPosition, employee.newDepartment, employee.newDivision);
+  const fromPlace = placeSegment(employee.currentCompany, employee.currentLocation);
+  const toPlace = placeSegment(employee.newCompany, employee.newLocation);
+
+  const sameCompany = sameText(employee.currentCompany, employee.newCompany);
+  const sameSite = sameText(employee.currentLocation, employee.newLocation);
+
+  // Collapse: same company AND same site → state the place once at the end.
+  if (sameCompany && sameSite && toPlace) {
+    return `${personName(employee)} ${verb} from ${fromRole} to ${toRole}, ${toPlace}.`;
+  }
+
+  const fromFull = fromPlace ? `${fromRole}, ${fromPlace}` : fromRole;
+  const toFull = toPlace ? `${toRole}, ${toPlace}` : toRole;
+  return `${personName(employee)} ${verb} from ${fromFull} to ${toFull}.`;
 }
 
-/** The effective-date sentence for non assignment-style movements. */
+/** The announcement effective-date sentence, tense-adjusted (matches the real ITM wording). */
 export function buildEffectiveDateSentence(effectiveDate: Date, announcementDate: Date): string {
   const tense = computeTense(effectiveDate, announcementDate);
   const dateStr = formatLetterDate(effectiveDate);
   switch (tense) {
     case "future":
-      return `This announcement will be effective as of ${dateStr}.`;
+      return `This announcement will be effectively applied starting from ${dateStr}.`;
     case "present":
-      return `This announcement is effective as of ${dateStr}.`;
+      return `This announcement is effectively applied starting from ${dateStr}.`;
     case "past":
-      return `This announcement has been effective since ${dateStr}.`;
+      return `This announcement has been effectively applied starting from ${dateStr}.`;
   }
 }
 
@@ -155,7 +194,7 @@ export interface NarrationResult {
 
 /**
  * Builds the full narration (one bullet per employee) + the effective-date sentence,
- * following the tense/assignment rules in the backend spec.
+ * following the ITM letter format and the tense/assignment rules.
  */
 export function buildNarration(
   movementType: MovementType,

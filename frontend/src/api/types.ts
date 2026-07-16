@@ -82,6 +82,7 @@ export interface MovementForm {
 export interface AnnouncementEmployee {
   id: string;
   announcementId: string;
+  title: string | null;
   employeeName: string;
   employeeId: string | null;
   movementType: MovementType | null;
@@ -102,6 +103,8 @@ export interface AnnouncementEmployee {
   effectiveDate: string | null;
   assignmentStartDate: string | null;
   assignmentEndDate: string | null;
+  photoUrl: string | null;
+  photoKey: string | null;
 }
 
 export interface Signatory {
@@ -140,6 +143,7 @@ export interface Announcement {
   signatoryId: string | null;
   notes: string | null;
   pdfUrl: string | null;
+  emailImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
   employees: AnnouncementEmployee[];

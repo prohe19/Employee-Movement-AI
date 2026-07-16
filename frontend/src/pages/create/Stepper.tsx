@@ -1,4 +1,4 @@
-const STEPS = ["UPLOAD", "EXTRACTION", "REVIEW", "DETAILS", "PREVIEW"];
+const STEPS = ["MOVEMENT", "ANNOUNCEMENT", "PREVIEW"];
 
 export function Stepper({ current }: { current: number }) {
   return (
