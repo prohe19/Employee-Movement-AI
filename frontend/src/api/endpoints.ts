@@ -73,6 +73,7 @@ export const announcementsApi = {
   create: (input: unknown) => api.post<{ announcement: Announcement }>("/announcements", input),
   update: (id: string, input: unknown) =>
     api.patch<{ announcement: Announcement }>(`/announcements/${id}`, input),
+  remove: (id: string) => api.del<void>(`/announcements/${id}`),
   narrate: (id: string) => api.post<NarrationResult>(`/announcements/${id}/narrate`),
   resolveSignatory: (id: string) =>
     api.post<SignatoryResolution>(`/announcements/${id}/resolve-signatory`),
