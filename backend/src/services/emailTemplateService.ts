@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { MovementType } from "@prisma/client";
 import { compareDates, formatLetterDate } from "../lib/dateFormat";
+import { calibriFontFaceCss } from "./fontAssets";
 
 /**
  * Builds the HR "Body Email" announcement image (PNG) HTML for employee movements,
@@ -230,18 +231,19 @@ export function buildEmailImageHtml(input: EmailImageInput): EmailImageBuild {
   const closing = closingText(category, employees);
 
   const head = `<meta charset="utf-8"><style>
+    ${calibriFontFaceCss()}
     * { margin:0; padding:0; box-sizing:border-box; }
     html,body { width:1280px; height:720px; }
     .slide { position:relative; width:1280px; height:720px; overflow:hidden;
-             font-family: Arial, Helvetica, sans-serif; color:${NAVY};
+             font-family: 'Calibri', 'Carlito', Arial, Helvetica, sans-serif; color:${NAVY};
              background-image:url('${bg}'); background-size:1280px 720px; background-repeat:no-repeat; }
     .title { position:absolute; left:183px; top:42px; font-size:26px; font-weight:700; line-height:1.25; }
     .internal { position:absolute; left:60px; top:672px; font-size:15px; font-weight:700;
                 color:${INTERNAL_TEAL}; letter-spacing:.3px; }
-    .ch { font-size:17px; font-weight:700; color:${NAVY}; margin-bottom:2px; }
-    .row { display:flex; font-size:15.5px; line-height:1.72; color:${NAVY}; }
+    .ch { font-size:17px; font-weight:700; color:${NAVY}; margin-bottom:3px; }
+    .row { display:flex; font-size:15.5px; line-height:1.5; color:${NAVY}; }
     .rl { width:118px; } .rc { width:14px; } .rv { flex:1; }
-    .gap { height:14px; }
+    .gap { height:12px; }
     ${plural ? multiCss(employees.length) : singleCss()}
   </style>`;
 
@@ -265,12 +267,12 @@ function singleCss(): string {
     .intro { position:absolute; left:80px; top:150px; width:1120px; font-size:17.5px; line-height:1.6; }
     .panel { position:absolute; left:58px; top:262px; width:1164px; height:372px;
              background:rgba(203,230,246,0.55); border-radius:22px; }
-    .photo { position:absolute; left:88px; top:322px; width:136px; height:136px; border-radius:50%;
+    .photo { position:absolute; left:96px; top:318px; width:132px; height:132px; border-radius:50%;
              object-fit:cover; border:2px solid #6a78c4; background:#dfeaf3; }
-    .name { position:absolute; left:255px; top:360px; width:270px; text-align:center;
+    .name { position:absolute; left:258px; top:368px; width:280px; text-align:center;
             font-size:19px; font-weight:700; }
-    .eff { position:absolute; left:80px; top:452px; width:520px; font-size:16.5px; }
-    .closing { position:absolute; left:80px; top:505px; width:530px; font-size:15px; line-height:1.55; }
+    .eff { position:absolute; left:80px; top:492px; width:520px; font-size:16.5px; }
+    .closing { position:absolute; left:80px; top:534px; width:530px; font-size:15px; line-height:1.55; }
     .card { position:absolute; left:648px; top:292px; width:548px; height:312px;
             border:1.6px solid #5b6bbf; border-radius:16px; padding:20px 26px; }`;
 }
