@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { MovementType } from "@prisma/client";
 import { formatLetterDate } from "../lib/dateFormat";
+import { calibriFontFaceCss } from "./fontAssets";
 
 const LETTERHEAD_PATH = path.join(__dirname, "..", "..", "assets", "letter_memo_2125.png");
 
@@ -74,8 +75,10 @@ function escapeHtml(str: string): string {
 }
 
 export function renderLetterHtml(data: LetterData): string {
-  const bullets = data.narrationLines
-    .map((line) => `<div class="bullet"><span class="dot">&bull;</span><span>${escapeHtml(line)}</span></div>`)
+  // Each movement sentence is its own justified paragraph (no bullets), matching the
+  // real ITM letter.
+  const movementParas = data.narrationLines
+    .map((line) => `<p class="para movement">${escapeHtml(line)}</p>`)
     .join("");
 
   const signatureImg = data.signatureImageUrl
@@ -87,53 +90,50 @@ export function renderLetterHtml(data: LetterData): string {
 <head>
 <meta charset="utf-8" />
 <style>
+  ${calibriFontFaceCss()}
   @page { size: A4 portrait; margin: 0; }
   html, body { margin: 0; padding: 0; width: 210mm; height: 297mm; }
   * { box-sizing: border-box; }
   body {
     position: relative;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    color: #1c1c28;
+    font-family: 'Calibri', 'Carlito', Arial, sans-serif;
+    color: #111;
     background-image: url('${getLetterheadDataUri()}');
     background-size: 210mm 297mm;
     background-repeat: no-repeat;
   }
-  .content {
-    position: absolute;
-    left: 3.51%;
-    right: 3.51%;
-    top: 6.42%;
-  }
+  /* 1-inch (25.4mm) margins all round, matching the source document. */
+  .content { position: absolute; left: 25.4mm; right: 25.4mm; top: 16mm; }
   .header { text-align: center; }
-  .header .title { font-size: 12.5pt; font-weight: 700; color: #111; }
-  .header .number { font-size: 10.5pt; color: #222; margin-top: 4pt; }
-  .header .announcement-title { font-size: 11.5pt; font-weight: 700; color: #111; margin-top: 11pt; }
-  .header .company { font-size: 10pt; color: #222; margin-top: 2pt; }
-  .body { margin-top: 22pt; font-size: 10pt; line-height: 1.75; color: #1f2430; }
-  .bullet { display: flex; gap: 7pt; margin-top: 11pt; }
-  .effective { margin-top: 11pt; }
-  .closing { margin-top: 20pt; }
-  .approved { margin-top: 13pt; }
-  .signature-space { height: 42pt; }
-  .signature { height: 42pt; object-fit: contain; }
+  .header .line { font-size: 16pt; line-height: 1.3; color: #111; }
+  .header .title { font-weight: 700; }
+  .body { margin-top: 26pt; font-size: 11pt; line-height: 1.3; color: #1a1a1a; }
+  .body .para { margin: 0 0 12pt 0; }
+  .movement { font-size: 10.5pt; text-align: justify; }
+  .datesign { margin-top: 12pt; }
+  .datesign .para { margin: 0; }
+  .signature-space { height: 46pt; }
+  .signature { height: 46pt; object-fit: contain; margin: 6pt 0; }
   .signatory-name { font-weight: 700; color: #111; }
 </style>
 </head>
 <body>
   <div class="content">
     <div class="header">
-      <div class="title">Announcement</div>
-      <div class="number">${escapeHtml(data.announcementNumber)}</div>
-      <div class="announcement-title">${escapeHtml(movementTitle(data.movementType))}</div>
-      <div class="company">${escapeHtml(data.companyName)}</div>
+      <div class="line title">Announcement</div>
+      <div class="line">${escapeHtml(data.announcementNumber)}</div>
+      <div class="line">${escapeHtml(movementTitle(data.movementType))}</div>
+      <div class="line">${escapeHtml(data.companyName)}</div>
     </div>
     <div class="body">
-      <div>Dear All Employees,</div>
-      <div class="effective">${escapeHtml(OPENING_PARAGRAPH(data.movementType))}</div>
-      ${bullets}
-      <div class="effective">${escapeHtml(data.effectiveSentence)}</div>
-      <div class="closing">${escapeHtml(data.city)}, ${formatLetterDate(data.announcementDate)}.</div>
-      <div class="approved">Approved by,</div>
+      <p class="para">Dear All Employees,</p>
+      <p class="para">${escapeHtml(OPENING_PARAGRAPH(data.movementType))}</p>
+      ${movementParas}
+      <p class="para">${escapeHtml(data.effectiveSentence)}</p>
+      <div class="datesign">
+        <p class="para">${escapeHtml(data.city)}, ${formatLetterDate(data.announcementDate)}.</p>
+        <p class="para">Approved by,</p>
+      </div>
       ${signatureImg}
       <div class="signatory-name">${escapeHtml(data.signatoryName)}</div>
       <div>${escapeHtml(data.signatoryTitle)}</div>
