@@ -52,10 +52,10 @@ const GROUPS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "COMPANY & LOCATION",
     fields: [
-      { key: "currentCompany", label: "CURRENT COMPANY (PT)", options: COMPANIES },
-      { key: "newCompany", label: "NEW COMPANY (PT)", options: COMPANIES },
-      { key: "currentLocation", label: "CURRENT SITE / LOCATION", options: SITES },
-      { key: "newLocation", label: "NEW SITE / LOCATION", options: SITES },
+      { key: "currentCompany", label: "CURRENT COMPANY (PT) *", options: COMPANIES },
+      { key: "newCompany", label: "NEW COMPANY (PT) *", options: COMPANIES },
+      { key: "currentLocation", label: "CURRENT SITE / LOCATION *", options: SITES },
+      { key: "newLocation", label: "NEW SITE / LOCATION *", options: SITES },
     ],
   },
 ];
@@ -97,7 +97,13 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
 
   const dateFields = dateFieldsFor(state.movementType);
   const canContinue = state.employees.every(
-    (e) => e.employeeName.trim().length > 0 && e.photoUrl.trim().length > 0
+    (e) =>
+      e.employeeName.trim().length > 0 &&
+      e.photoUrl.trim().length > 0 &&
+      e.currentCompany.trim().length > 0 &&
+      e.newCompany.trim().length > 0 &&
+      e.currentLocation.trim().length > 0 &&
+      e.newLocation.trim().length > 0
   );
   const atMax = state.employees.length >= MAX_EMPLOYEES;
 
@@ -293,7 +299,7 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
       <div className="alert alert-warn" style={{ marginTop: 16 }}>
         ▲ Enter details exactly as they should appear in the letter. The narration sentence and signatory are generated
         from these fields — no AI, no extra cost. When the current company and site match the new ones, the letter states
-        the company &amp; site once at the end automatically. Each employee photo is required for the announcement email image.
+        the company &amp; site once at the end automatically. Fields marked <strong>*</strong> (photo, company, and site) are required for every employee.
       </div>
 
       {photoError && <div className="alert alert-error" style={{ marginTop: 12 }}>{photoError}</div>}

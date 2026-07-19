@@ -16,10 +16,10 @@ export const COMPANIES = [
 ] as const;
 
 export const SITES = [
-  "Balikpapan Site",
+  "Balikpapan Office",
   "Bontang Site",
   "Embalut Site",
-  "Jakarta Site",
+  "Jakarta Office",
   "Jorong Site",
   "Melak Site",
   "Samarinda Site",
