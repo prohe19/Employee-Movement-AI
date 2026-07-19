@@ -122,6 +122,22 @@ export async function validateAnnouncement(
         `${label}: current JS is required.`
       )
     );
+    rules.push(
+      rule(
+        `emp_${emp.id}_company`,
+        `${label}: current & new company present`,
+        !!emp.currentCompany && !!emp.newCompany,
+        `${label}: current and new company are required.`
+      )
+    );
+    rules.push(
+      rule(
+        `emp_${emp.id}_site`,
+        `${label}: current & new site/location present`,
+        !!emp.currentLocation && !!emp.newLocation,
+        `${label}: current and new site/location are required.`
+      )
+    );
 
     if (assignmentLike) {
       const hasStart = !!emp.assignmentStartDate;
