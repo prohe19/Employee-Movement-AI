@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPES } from "../../lib/format";
+import { COMPANIES, SITES } from "../../lib/options";
 import { announcementsApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
 import type { MovementType } from "../../api/types";
@@ -29,7 +30,9 @@ function dateFieldsFor(movementType: MovementType): { key: FieldKey; label: stri
   return [{ key: "effectiveDate", label: "EFFECTIVE DATE" }];
 }
 
-const GROUPS: { title: string; fields: { key: FieldKey; label: string; type?: string }[] }[] = [
+type FieldDef = { key: FieldKey; label: string; type?: string; options?: readonly string[] };
+
+const GROUPS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "POSITION",
     fields: [
@@ -49,10 +52,10 @@ const GROUPS: { title: string; fields: { key: FieldKey; label: string; type?: st
   {
     title: "COMPANY & LOCATION",
     fields: [
-      { key: "currentCompany", label: "CURRENT COMPANY (PT)" },
-      { key: "newCompany", label: "NEW COMPANY (PT)" },
-      { key: "currentLocation", label: "CURRENT SITE / LOCATION" },
-      { key: "newLocation", label: "NEW SITE / LOCATION" },
+      { key: "currentCompany", label: "CURRENT COMPANY (PT)", options: COMPANIES },
+      { key: "newCompany", label: "NEW COMPANY (PT)", options: COMPANIES },
+      { key: "currentLocation", label: "CURRENT SITE / LOCATION", options: SITES },
+      { key: "newLocation", label: "NEW SITE / LOCATION", options: SITES },
     ],
   },
 ];
@@ -222,13 +225,31 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
                   {group.fields.map((field) => (
                     <div key={field.key}>
                       <span style={labelStyle}>{field.label}</span>
-                      <input
-                        className="input"
-                        type={field.type ?? "text"}
-                        value={emp[field.key]}
-                        onChange={(e) => setEmployee(index, field.key, e.target.value)}
-                        style={{ minHeight: 40, fontSize: 12.5 }}
-                      />
+                      {field.options ? (
+                        <select
+                          className="select"
+                          value={emp[field.key]}
+                          onChange={(e) => setEmployee(index, field.key, e.target.value)}
+                          style={{ minHeight: 40, fontSize: 12.5, appearance: "none", cursor: "pointer" }}
+                        >
+                          <option value="" style={{ background: "#170722" }}>
+                            Select…
+                          </option>
+                          {field.options.map((opt) => (
+                            <option key={opt} value={opt} style={{ background: "#170722" }}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="input"
+                          type={field.type ?? "text"}
+                          value={emp[field.key]}
+                          onChange={(e) => setEmployee(index, field.key, e.target.value)}
+                          style={{ minHeight: 40, fontSize: 12.5 }}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
