@@ -144,6 +144,7 @@ export interface Announcement {
   notes: string | null;
   pdfUrl: string | null;
   emailImageUrl: string | null;
+  emailLogoKey: string | null;
   createdAt: string;
   updatedAt: string;
   employees: AnnouncementEmployee[];

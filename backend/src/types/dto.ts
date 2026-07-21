@@ -63,6 +63,7 @@ export const createAnnouncementSchema = z.object({
   templateId: z.string().uuid().optional().nullable(),
   movementType: movementTypeEnum,
   notes: z.string().optional().nullable(),
+  emailLogoKey: z.string().optional().nullable(),
   employees: z.array(employeeInputSchema).min(1),
 });
 export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
@@ -75,6 +76,7 @@ export const updateAnnouncementSchema = z.object({
   movementType: movementTypeEnum.optional(),
   status: announcementStatusEnum.optional(),
   notes: z.string().optional().nullable(),
+  emailLogoKey: z.string().optional().nullable(),
   signatoryId: z.string().uuid().optional().nullable(),
   employees: z.array(employeeInputSchema).min(1).optional(),
 });
