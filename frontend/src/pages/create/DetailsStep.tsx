@@ -3,6 +3,7 @@ import { InfoNote, TextInput, TextArea } from "../../components/ui";
 import { announcementsApi, templatesApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
 import type { SignatoryResolution, Template } from "../../api/types";
+import { EMAIL_LOGOS } from "../../lib/emailLogos";
 import { employeeToPayload, WizardState } from "./wizardTypes";
 
 interface Props {
@@ -43,6 +44,7 @@ export function DetailsStep({ state, patch, onBack, onNext }: Props) {
         templateId: state.templateId || undefined,
         movementType: state.movementType,
         notes: state.notes || undefined,
+        emailLogoKey: state.emailLogoKey || undefined,
         employees: state.employees.map(employeeToPayload),
       };
 
@@ -114,6 +116,21 @@ export function DetailsStep({ state, patch, onBack, onNext }: Props) {
               {templates.map((t) => (
                 <option key={t.id} value={t.id} style={{ background: "#170722" }}>
                   {t.name} (v{t.version})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div className="label">// EMAIL LOGO (TOP-RIGHT OF THE BODY EMAIL)</div>
+            <select
+              className="select"
+              value={state.emailLogoKey}
+              onChange={(e) => patch({ emailLogoKey: e.target.value })}
+              style={{ appearance: "none", cursor: "pointer" }}
+            >
+              {EMAIL_LOGOS.map((l) => (
+                <option key={l.key} value={l.key} style={{ background: "#170722" }}>
+                  {l.label}
                 </option>
               ))}
             </select>

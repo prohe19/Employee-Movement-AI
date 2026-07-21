@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma";
 import { ApiError } from "../lib/errors";
 import { getAnnouncement } from "./announcementService";
 import { buildEmailImageHtml, emailCategory, type EmailEmployeeInput } from "./emailTemplateService";
+import { emailLogoDataUri } from "./emailLogos";
 import { renderHtmlToPng } from "./pdfService";
 import { getStorageDriver } from "./storage";
 import { logActivity } from "./activityLogService";
@@ -65,6 +66,7 @@ export async function generateAnnouncementEmailImage(id: string, userId: string)
     movementType: announcement.movementType,
     employees,
     announcementDate: announcement.announcementDate,
+    logoDataUri: emailLogoDataUri(announcement.emailLogoKey),
   });
 
   const pngBuffer = await renderHtmlToPng(html, 1280, 720);

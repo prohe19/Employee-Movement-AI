@@ -196,7 +196,16 @@ export interface EmailImageInput {
   movementType: MovementType;
   employees: EmailEmployeeInput[];
   announcementDate: Date;
+  /** Data URI for the top-right "{CODE} HR" badge logo. */
+  logoDataUri: string;
 }
+
+// Background colour immediately around the top-right badge, per tense — used to
+// feather-cover the badge baked into the background before overlaying the chosen logo.
+const COVER_RGB: Record<EmailTense, string> = {
+  upcoming: "225,243,251",
+  past: "204,224,239",
+};
 
 export interface EmailImageBuild {
   html: string;
@@ -238,6 +247,11 @@ export function buildEmailImageHtml(input: EmailImageInput): EmailImageBuild {
              font-family: 'Calibri', 'Carlito', Arial, Helvetica, sans-serif; color:${NAVY};
              background-image:url('${bg}'); background-size:1280px 720px; background-repeat:no-repeat; }
     .title { position:absolute; left:183px; top:42px; font-size:26px; font-weight:700; line-height:1.25; }
+    /* Feather-cover the baked-in badge, then overlay the chosen logo top-right. */
+    .logo-cover { position:absolute; left:1024px; top:-24px; width:304px; height:228px;
+                  background:radial-gradient(ellipse 50% 50% at 50% 50%,
+                    rgb(${COVER_RGB[tense]}) 60%, rgba(${COVER_RGB[tense]},0.55) 74%, rgba(${COVER_RGB[tense]},0) 100%); }
+    .corner-logo { position:absolute; left:1072px; top:10px; width:186px; height:134px; object-fit:contain; }
     .internal { position:absolute; left:60px; top:672px; font-size:15px; font-weight:700;
                 color:${INTERNAL_TEAL}; letter-spacing:.3px; }
     .ch { font-size:17px; font-weight:700; color:${NAVY}; margin-bottom:3px; }
@@ -252,6 +266,8 @@ export function buildEmailImageHtml(input: EmailImageInput): EmailImageBuild {
   const html = `<!doctype html><html><head>${head}</head><body>
     <div class="slide">
       <div class="title">Company Announcement:<br>${title}</div>
+      <div class="logo-cover"></div>
+      <img class="corner-logo" src="${input.logoDataUri}">
       ${body}
       <div class="internal">FOR INTERNAL USE ONLY</div>
     </div>

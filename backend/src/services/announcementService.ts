@@ -59,6 +59,7 @@ export async function createAnnouncement(userId: string, input: CreateAnnounceme
       templateId: input.templateId ?? undefined,
       movementType: input.movementType,
       notes: input.notes ?? undefined,
+      emailLogoKey: input.emailLogoKey ?? undefined,
       createdBy: userId,
       status: "Draft",
       employees: { create: input.employees.map(employeeCreateData) },
@@ -100,6 +101,7 @@ export async function updateAnnouncement(
         movementType: input.movementType ?? undefined,
         status: input.status ?? undefined,
         notes: input.notes === undefined ? undefined : input.notes,
+        emailLogoKey: input.emailLogoKey === undefined ? undefined : input.emailLogoKey,
         signatoryId: input.signatoryId === undefined ? undefined : input.signatoryId,
       },
     });

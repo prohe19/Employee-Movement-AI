@@ -84,6 +84,7 @@ model Announcement {
   updatedAt          DateTime           @updatedAt
   pdfUrl             String?
   emailImageUrl      String?
+  emailLogoKey       String?
 
   creator       User                  @relation("CreatedByUser", fields: [createdBy], references: [id])
   template      Template?             @relation(fields: [templateId], references: [id])

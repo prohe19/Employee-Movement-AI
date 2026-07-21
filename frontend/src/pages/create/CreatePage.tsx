@@ -21,6 +21,7 @@ function initialState(): WizardState {
     notes: "",
     templateId: "",
     movementType: "Transfer" as MovementType,
+    emailLogoKey: "ITM",
     employees: [emptyEmployee()],
     announcementId: null,
   };
