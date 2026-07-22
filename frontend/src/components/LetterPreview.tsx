@@ -48,6 +48,7 @@ export interface LetterPreviewData {
   announcementDate: string;
   signatoryName: string;
   signatoryTitle: string;
+  letterheadKey?: string | null;
 }
 
 /**
@@ -55,7 +56,7 @@ export interface LetterPreviewData {
  * Uses the letterhead PNG served by the backend at /assets/letterhead.png.
  */
 export function LetterPreview({ data, width = 520 }: { data: LetterPreviewData; width?: number }) {
-  const letterheadUrl = `${import.meta.env.VITE_API_BASE_URL ?? "/api"}/assets/letter_memo_2125.png`;
+  const letterheadUrl = `${import.meta.env.VITE_API_BASE_URL ?? "/api"}/assets/letterheads/${data.letterheadKey || "ITM"}.jpg`;
   return (
     <div
       style={{

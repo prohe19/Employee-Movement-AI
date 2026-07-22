@@ -37,6 +37,7 @@ export async function generateAnnouncementPdf(id: string, userId: string) {
     signatoryName: announcement.signatory.name,
     signatoryTitle: announcement.signatory.title,
     signatureImageUrl: announcement.signatory.signatureImageUrl,
+    letterheadKey: announcement.letterheadKey,
   });
 
   const storage = getStorageDriver();

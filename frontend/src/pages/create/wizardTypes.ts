@@ -37,6 +37,7 @@ export interface WizardState {
   templateId: string;
   movementType: MovementType;
   emailLogoKey: string;
+  letterheadKey: string;
   employees: EditableEmployee[];
   announcementId: string | null;
 }
