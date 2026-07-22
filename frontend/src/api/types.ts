@@ -9,18 +9,7 @@ export interface User {
   createdAt: string;
 }
 
-export type MovementType =
-  | "Transfer"
-  | "TemporaryAssignment"
-  | "PermanentAssignment"
-  | "Rotation"
-  | "LateralMovement"
-  | "ChangeOfPosition"
-  | "ChangeOfLocation"
-  | "ChangeOfCompany"
-  | "ActingAssignment"
-  | "EndOfAssignment"
-  | "Other";
+export type MovementType = "Transfer" | "Assignment";
 
 export type AnnouncementStatus =
   | "Draft"

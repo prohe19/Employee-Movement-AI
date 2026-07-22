@@ -5,30 +5,12 @@ import { letterheadDataUri } from "./letterheads";
 
 const MOVEMENT_TITLES: Record<MovementType, string> = {
   Transfer: "Employee's Transfer",
-  TemporaryAssignment: "Employee's Temporary Assignment",
-  PermanentAssignment: "Employee's Permanent Assignment",
-  Rotation: "Employee's Rotation",
-  LateralMovement: "Employee's Lateral Movement",
-  ChangeOfPosition: "Employee's Change of Position",
-  ChangeOfLocation: "Employee's Change of Location",
-  ChangeOfCompany: "Employee's Change of Company",
-  ActingAssignment: "Employee's Acting Assignment",
-  EndOfAssignment: "Employee's End of Assignment",
-  Other: "Employee Movement Announcement",
+  Assignment: "Employee's Assignment",
 };
 
 const MOVEMENT_NOUN: Record<MovementType, string> = {
   Transfer: "transfer",
-  TemporaryAssignment: "temporary assignment",
-  PermanentAssignment: "permanent assignment",
-  Rotation: "rotation",
-  LateralMovement: "lateral movement",
-  ChangeOfPosition: "change of position",
-  ChangeOfLocation: "change of location",
-  ChangeOfCompany: "change of company",
-  ActingAssignment: "acting assignment",
-  EndOfAssignment: "end of assignment",
-  Other: "movement",
+  Assignment: "assignment",
 };
 
 export function movementTitle(movementType: MovementType): string {

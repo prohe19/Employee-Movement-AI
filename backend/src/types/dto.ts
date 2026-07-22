@@ -1,18 +1,6 @@
 import { z } from "zod";
 
-export const movementTypeEnum = z.enum([
-  "Transfer",
-  "TemporaryAssignment",
-  "PermanentAssignment",
-  "Rotation",
-  "LateralMovement",
-  "ChangeOfPosition",
-  "ChangeOfLocation",
-  "ChangeOfCompany",
-  "ActingAssignment",
-  "EndOfAssignment",
-  "Other",
-]);
+export const movementTypeEnum = z.enum(["Transfer", "Assignment"]);
 
 export const announcementStatusEnum = z.enum([
   "Draft",

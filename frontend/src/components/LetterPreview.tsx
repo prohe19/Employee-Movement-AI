@@ -26,16 +26,7 @@ function letterDate(input: string | Date | null | undefined): string {
 
 const MOVEMENT_NOUN: Record<MovementType, string> = {
   Transfer: "transfer",
-  TemporaryAssignment: "temporary assignment",
-  PermanentAssignment: "permanent assignment",
-  Rotation: "rotation",
-  LateralMovement: "lateral movement",
-  ChangeOfPosition: "change of position",
-  ChangeOfLocation: "change of location",
-  ChangeOfCompany: "change of company",
-  ActingAssignment: "acting assignment",
-  EndOfAssignment: "end of assignment",
-  Other: "movement",
+  Assignment: "assignment",
 };
 
 export interface LetterPreviewData {

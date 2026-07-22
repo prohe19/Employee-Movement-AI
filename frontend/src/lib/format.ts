@@ -2,16 +2,7 @@ import type { MovementType } from "../api/types";
 
 export const MOVEMENT_TYPE_LABELS: Record<MovementType, string> = {
   Transfer: "Transfer",
-  TemporaryAssignment: "Temporary Assignment",
-  PermanentAssignment: "Permanent Assignment",
-  Rotation: "Rotation",
-  LateralMovement: "Lateral Movement",
-  ChangeOfPosition: "Change of Position",
-  ChangeOfLocation: "Change of Location",
-  ChangeOfCompany: "Change of Company",
-  ActingAssignment: "Acting Assignment",
-  EndOfAssignment: "End of Assignment",
-  Other: "Other Employee Movement",
+  Assignment: "Assignment",
 };
 
 export const MOVEMENT_TYPES = Object.keys(MOVEMENT_TYPE_LABELS) as MovementType[];
