@@ -249,6 +249,7 @@ export function PreviewStep({ state, onBack }: Props) {
                   announcementDate: announcement.announcementDate,
                   signatoryName: announcement.signatory?.name ?? "",
                   signatoryTitle: announcement.signatory?.title ?? "",
+                  letterheadKey: announcement.letterheadKey,
                 }}
               />
             )}

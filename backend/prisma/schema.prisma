@@ -85,6 +85,7 @@ model Announcement {
   pdfUrl             String?
   emailImageUrl      String?
   emailLogoKey       String?
+  letterheadKey      String?
 
   creator       User                  @relation("CreatedByUser", fields: [createdBy], references: [id])
   template      Template?             @relation(fields: [templateId], references: [id])

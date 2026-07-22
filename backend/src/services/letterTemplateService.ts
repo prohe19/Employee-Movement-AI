@@ -1,19 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { MovementType } from "@prisma/client";
 import { formatLetterDate } from "../lib/dateFormat";
 import { calibriFontFaceCss } from "./fontAssets";
-
-const LETTERHEAD_PATH = path.join(__dirname, "..", "..", "assets", "letter_memo_2125.png");
-
-let letterheadDataUri: string | null = null;
-function getLetterheadDataUri(): string {
-  if (!letterheadDataUri) {
-    const buf = fs.readFileSync(LETTERHEAD_PATH);
-    letterheadDataUri = `data:image/png;base64,${buf.toString("base64")}`;
-  }
-  return letterheadDataUri;
-}
+import { letterheadDataUri } from "./letterheads";
 
 const MOVEMENT_TITLES: Record<MovementType, string> = {
   Transfer: "Employee's Transfer",
@@ -64,6 +52,8 @@ export interface LetterData {
   signatoryName: string;
   signatoryTitle: string;
   signatureImageUrl?: string | null;
+  /** Company key selecting the letterhead background; defaults to ITM. */
+  letterheadKey?: string | null;
 }
 
 function escapeHtml(str: string): string {
@@ -98,7 +88,7 @@ export function renderLetterHtml(data: LetterData): string {
     position: relative;
     font-family: 'Calibri', 'Carlito', Arial, sans-serif;
     color: #111;
-    background-image: url('${getLetterheadDataUri()}');
+    background-image: url('${letterheadDataUri(data.letterheadKey)}');
     background-size: 210mm 297mm;
     background-repeat: no-repeat;
   }
