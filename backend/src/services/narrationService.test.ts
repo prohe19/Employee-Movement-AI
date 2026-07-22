@@ -207,7 +207,7 @@ describe("buildNarration — tense and assignments", () => {
 
   it("builds a temporary assignment sentence + assignment date sentence", () => {
     const result = buildNarration(
-      "TemporaryAssignment",
+      "Assignment",
       [
         emp({
           employeeName: "Lucas Manurung",
@@ -234,7 +234,7 @@ describe("buildNarration — tense and assignments", () => {
 
   it("blocks when a temporary assignment is missing its end date", () => {
     const result = buildNarration(
-      "TemporaryAssignment",
+      "Assignment",
       [
         emp({
           employeeName: "Jane Doe",

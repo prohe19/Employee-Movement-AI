@@ -28,26 +28,16 @@ export function computeTense(effectiveDate: Date, announcementDate: Date): Tense
   return "past";
 }
 
-const ASSIGNMENT_LIKE: MovementType[] = ["TemporaryAssignment", "ActingAssignment"];
+const ASSIGNMENT_LIKE: MovementType[] = ["Assignment"];
 
 /** Movement verb by type and tense — e.g. "is transferred", "will be assigned". */
 function verbsFor(movementType: MovementType): { future: string; present: string; past: string } {
   switch (movementType) {
-    case "Transfer":
-    case "ChangeOfPosition":
-    case "ChangeOfLocation":
-    case "ChangeOfCompany":
-      return { future: "will be transferred", present: "is transferred", past: "has been transferred" };
-    case "TemporaryAssignment":
-    case "PermanentAssignment":
-    case "ActingAssignment":
+    case "Assignment":
       return { future: "will be assigned", present: "is assigned", past: "has been assigned" };
-    case "Rotation":
-      return { future: "will be rotated", present: "is rotated", past: "has been rotated" };
-    case "LateralMovement":
-      return { future: "will be moved", present: "is moved", past: "has been moved" };
+    case "Transfer":
     default:
-      return { future: "will be moved", present: "is moved", past: "has been moved" };
+      return { future: "will be transferred", present: "is transferred", past: "has been transferred" };
   }
 }
 
@@ -91,17 +81,6 @@ export function buildMovementSentence(
   effectiveDate: Date,
   announcementDate: Date
 ): string {
-  if (movementType === "EndOfAssignment") {
-    const endDate = employee.assignmentEndDate;
-    const place = placeSegment(
-      employee.currentCompany ?? employee.newCompany,
-      employee.currentLocation ?? employee.newLocation
-    );
-    const assignedPosition = clean(employee.currentPosition);
-    const endDateStr = endDate ? formatLetterDate(endDate) : "";
-    return `${personName(employee)}'s assignment as ${assignedPosition}${place ? `, ${place}` : ""} will conclude on ${endDateStr}.`;
-  }
-
   const tense = computeTense(effectiveDate, announcementDate);
   const verb = verbsFor(movementType)[tense];
 
@@ -225,15 +204,6 @@ export function buildNarration(
         blocked = true;
         blockReason = sentence;
       }
-    } else if (movementType === "EndOfAssignment") {
-      if (!employee.assignmentEndDate) {
-        blocked = true;
-        blockReason = `${employee.employeeName}: assignment end date is required.`;
-        continue;
-      }
-      sentences.push(
-        buildMovementSentence(movementType, employee, employee.assignmentEndDate, announcementDate)
-      );
     } else {
       const effectiveDate = employee.effectiveDate;
       if (!effectiveDate) {

@@ -26,16 +26,7 @@ enum AnnouncementStatus {
 
 enum MovementType {
   Transfer
-  TemporaryAssignment
-  PermanentAssignment
-  Rotation
-  LateralMovement
-  ChangeOfPosition
-  ChangeOfLocation
-  ChangeOfCompany
-  ActingAssignment
-  EndOfAssignment
-  Other
+  Assignment
 }
 
 enum ExtractionConfidence {

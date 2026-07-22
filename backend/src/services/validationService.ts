@@ -160,22 +160,13 @@ export async function validateAnnouncement(
           )
         );
       }
-    } else if (movementType !== "EndOfAssignment") {
+    } else {
       rules.push(
         rule(
           `emp_${emp.id}_effective_date`,
           `${label}: effective date present`,
           !!emp.effectiveDate,
           `${label}: effective date is required.`
-        )
-      );
-    } else {
-      rules.push(
-        rule(
-          `emp_${emp.id}_assignment_end_date`,
-          `${label}: assignment end date present`,
-          !!emp.assignmentEndDate,
-          `${label}: assignment end date is required to conclude the assignment.`
         )
       );
     }

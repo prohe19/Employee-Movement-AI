@@ -32,25 +32,9 @@ export interface EmailEmployeeInput {
   photoDataUri: string;
 }
 
-const ASSIGNMENT_TYPES: MovementType[] = [
-  "TemporaryAssignment",
-  "PermanentAssignment",
-  "ActingAssignment",
-];
-const TRANSFER_TYPES: MovementType[] = [
-  "Transfer",
-  "Rotation",
-  "LateralMovement",
-  "ChangeOfPosition",
-  "ChangeOfLocation",
-  "ChangeOfCompany",
-];
-
-/** Maps a movement type to an email category, or null when the template has no design for it. */
+/** Maps a movement type to an email category. */
 export function emailCategory(movementType: MovementType): EmailCategory | null {
-  if (TRANSFER_TYPES.includes(movementType)) return "transfer";
-  if (ASSIGNMENT_TYPES.includes(movementType)) return "assignment";
-  return null; // EndOfAssignment, Other — not yet covered by the template.
+  return movementType === "Assignment" ? "assignment" : "transfer";
 }
 
 const NAVY = "#2f2e79";

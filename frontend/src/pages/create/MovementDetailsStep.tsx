@@ -14,18 +14,13 @@ interface Props {
 
 type FieldKey = keyof EditableEmployee;
 
-const ASSIGNMENT_LIKE: MovementType[] = ["TemporaryAssignment", "ActingAssignment"];
-
 /** Which date fields matter for the chosen movement type. */
 function dateFieldsFor(movementType: MovementType): { key: FieldKey; label: string }[] {
-  if (ASSIGNMENT_LIKE.includes(movementType)) {
+  if (movementType === "Assignment") {
     return [
       { key: "assignmentStartDate", label: "ASSIGNMENT START" },
       { key: "assignmentEndDate", label: "ASSIGNMENT END" },
     ];
-  }
-  if (movementType === "EndOfAssignment") {
-    return [{ key: "assignmentEndDate", label: "ASSIGNMENT END DATE" }];
   }
   return [{ key: "effectiveDate", label: "EFFECTIVE DATE" }];
 }

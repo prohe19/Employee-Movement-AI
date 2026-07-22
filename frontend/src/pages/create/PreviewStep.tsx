@@ -78,18 +78,8 @@ export function PreviewStep({ state, onBack }: Props) {
     }
   };
 
-  const EMAIL_TYPES = [
-    "Transfer",
-    "Rotation",
-    "LateralMovement",
-    "ChangeOfPosition",
-    "ChangeOfLocation",
-    "ChangeOfCompany",
-    "TemporaryAssignment",
-    "PermanentAssignment",
-    "ActingAssignment",
-  ];
-  const emailSupported = announcement ? EMAIL_TYPES.includes(announcement.movementType) : false;
+  // Both movement types (Transfer, Assignment) have an email template.
+  const emailSupported = announcement != null;
 
   const failedRules = validation?.rules.filter((r) => !r.passed) ?? [];
   const ready = validation?.valid && !narration?.blocked;
