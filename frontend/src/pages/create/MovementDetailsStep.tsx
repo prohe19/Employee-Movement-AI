@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPES } from "../../lib/format";
+import { useEffect, useState } from "react";
+import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPES, toDateInputValue } from "../../lib/format";
 import { COMPANIES, SITES } from "../../lib/options";
-import { announcementsApi } from "../../api/endpoints";
+import { announcementsApi, transferFormsApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
-import type { MovementType } from "../../api/types";
+import type { MovementType, TransferForm } from "../../api/types";
 import { emptyEmployee, EditableEmployee, MAX_EMPLOYEES, TITLE_OPTIONS, WizardState } from "./wizardTypes";
 
 interface Props {
@@ -58,6 +58,36 @@ const GROUPS: { title: string; fields: FieldDef[] }[] = [
 export function MovementDetailsStep({ state, patch, onNext }: Props) {
   const [uploading, setUploading] = useState<Record<number, boolean>>({});
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [forms, setForms] = useState<TransferForm[]>([]);
+
+  useEffect(() => {
+    transferFormsApi
+      .list()
+      .then((r) => setForms(r.forms))
+      .catch(() => undefined);
+  }, []);
+
+  const prefillFromForm = (index: number, formId: string) => {
+    const f = forms.find((x) => x.id === formId);
+    if (!f) return;
+    const s = (v: string | null) => v ?? "";
+    const fields: Partial<EditableEmployee> = {
+      title: f.title ?? "Mr.",
+      employeeName: f.employeeName,
+      employeeId: s(f.employeeId),
+      currentJs: f.levelJs != null ? String(f.levelJs) : "",
+      currentPosition: s(f.positionFrom), newPosition: s(f.positionTo),
+      currentDepartment: s(f.departmentFrom), newDepartment: s(f.departmentTo),
+      currentDivision: s(f.divisionFrom), newDivision: s(f.divisionTo),
+      currentLocation: s(f.locationFrom), newLocation: s(f.locationTo),
+      currentCompany: s(f.companyFrom), newCompany: s(f.companyTo),
+    };
+    const eff = toDateInputValue(f.effectiveDate);
+    if (f.movementType === "Assignment") fields.assignmentStartDate = eff;
+    else fields.effectiveDate = eff;
+    const employees = state.employees.map((emp, i) => (i === index ? { ...emp, ...fields } : emp));
+    patch({ employees, movementType: f.movementType });
+  };
 
   const setEmployee = (index: number, key: FieldKey, value: string) => {
     const employees = state.employees.map((emp, i) => (i === index ? { ...emp, [key]: value } : emp));
@@ -130,11 +160,32 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "rgba(177,74,237,0.9)" }}>
                 // EMPLOYEE {index + 1}
               </span>
-              {state.employees.length > 1 && (
-                <span onClick={() => removeEmployee(index)} style={{ cursor: "pointer", color: "#f87171", fontSize: 11, fontFamily: "var(--font-mono)" }}>
-                  REMOVE
-                </span>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {forms.length > 0 && (
+                  <select
+                    className="select"
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) prefillFromForm(index, e.target.value);
+                      e.target.value = "";
+                    }}
+                    title="Prefill this employee from a saved transfer form"
+                    style={{ appearance: "none", cursor: "pointer", height: 30, minHeight: 30, fontSize: 11, width: "auto", padding: "0 10px" }}
+                  >
+                    <option value="" style={{ background: "#170722" }}>⤵ Prefill from transfer form…</option>
+                    {forms.map((f) => (
+                      <option key={f.id} value={f.id} style={{ background: "#170722" }}>
+                        {f.employeeName}{f.employeeId ? ` (${f.employeeId})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {state.employees.length > 1 && (
+                  <span onClick={() => removeEmployee(index)} style={{ cursor: "pointer", color: "#f87171", fontSize: 11, fontFamily: "var(--font-mono)" }}>
+                    REMOVE
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* identity row: photo + title + name + employee id + current JS */}

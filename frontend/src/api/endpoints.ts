@@ -10,6 +10,7 @@ import type {
   Signatory,
   SignatoryResolution,
   Template,
+  TransferForm,
   User,
   ValidationReport,
 } from "./types";
@@ -87,6 +88,17 @@ export const announcementsApi = {
     form.append("file", file);
     return api.upload<{ url: string; key: string }>("/announcements/photo", form);
   },
+};
+
+// ---- Transfer Forms ----
+export const transferFormsApi = {
+  list: (search?: string) =>
+    api.get<{ forms: TransferForm[] }>(`/transfer-forms${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  get: (id: string) => api.get<{ form: TransferForm }>(`/transfer-forms/${id}`),
+  create: (input: unknown) => api.post<{ form: TransferForm }>("/transfer-forms", input),
+  update: (id: string, input: unknown) => api.patch<{ form: TransferForm }>(`/transfer-forms/${id}`, input),
+  remove: (id: string) => api.del<void>(`/transfer-forms/${id}`),
+  generatePdf: (id: string) => api.post<{ form: TransferForm }>(`/transfer-forms/${id}/generate-pdf`),
 };
 
 // ---- Templates / Signatories / Settings / Dashboard ----

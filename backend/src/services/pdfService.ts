@@ -33,6 +33,19 @@ export async function renderLetterPdf(data: LetterData): Promise<Buffer> {
   }
 }
 
+/** Renders an A4 HTML document to a PDF, honouring the document's own @page margins. */
+export async function renderTransferFormPdf(html: string): Promise<Buffer> {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setContent(html, { waitUntil: "load" });
+    const pdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    return Buffer.from(pdf);
+  } finally {
+    await page.close();
+  }
+}
+
 /** Renders an HTML document to a PNG buffer at the given pixel size (default 1280x720). */
 export async function renderHtmlToPng(
   html: string,

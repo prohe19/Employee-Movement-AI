@@ -9,6 +9,7 @@ import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
 import announcementRoutes from "./routes/announcementRoutes";
+import transferFormRoutes from "./routes/transferFormRoutes";
 import formRoutes from "./routes/formRoutes";
 import templateRoutes from "./routes/templateRoutes";
 import signatoryRoutes from "./routes/signatoryRoutes";
@@ -38,6 +39,7 @@ export function createApp() {
 
   app.use("/auth", authRoutes);
   app.use("/announcements", announcementRoutes);
+  app.use("/transfer-forms", transferFormRoutes);
   app.use("/forms", formRoutes);
   app.use("/templates", templateRoutes);
   app.use("/signatories", signatoryRoutes);

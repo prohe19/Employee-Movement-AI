@@ -53,9 +53,53 @@ model User {
 
   announcements Announcement[] @relation("CreatedByUser")
   movementForms MovementForm[]
+  transferForms TransferForm[]
   activityLogs  ActivityLog[]
 
   @@map("users")
+}
+
+model TransferForm {
+  id               String        @id @default(uuid())
+  docNumber        String?
+  transferType     String?       // between_companies | within_company
+  movementType     MovementType  @default(Transfer)
+  title            String?       // Mr. / Ms. / Mrs. (carried to the announcement; not printed on the form)
+  employeeName     String
+  employeeId       String?
+  levelJs          Int?
+  levelJp          Int?
+  positionFrom     String?
+  positionTo       String?
+  costCenterFrom   String?
+  costCenterTo     String?
+  sectionFrom      String?
+  sectionTo        String?
+  departmentFrom   String?
+  departmentTo     String?
+  divisionFrom     String?
+  divisionTo       String?
+  locationFrom     String?
+  locationTo       String?
+  companyFrom      String?
+  companyTo        String?
+  effectiveDate    DateTime?
+  vMpp             Boolean       @default(false)
+  vOrgStructureJe  Boolean       @default(false)
+  vCompetencyGap   Boolean       @default(false)
+  vJpGap           Boolean       @default(false)
+  vYearInPosition  Boolean       @default(false)
+  vTransferReason  Boolean       @default(false)
+  vOthers          Boolean       @default(false)
+  pdfUrl           String?
+  createdBy        String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@index([createdAt])
+  @@map("transfer_forms")
 }
 
 model Announcement {

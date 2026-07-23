@@ -7,6 +7,8 @@ import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CreatePage } from "./pages/create/CreatePage";
 import { RecordsPage } from "./pages/RecordsPage";
+import { TransferFormsPage } from "./pages/TransferFormsPage";
+import { TransferFormEditPage } from "./pages/TransferFormEditPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { SignatoriesPage } from "./pages/SignatoriesPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -68,6 +70,30 @@ export function App() {
         element={
           <RequireAuth>
             <CreatePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/transfer-forms"
+        element={
+          <RequireAuth>
+            <TransferFormsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/transfer-forms/new"
+        element={
+          <RequireAuth>
+            <TransferFormEditPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/transfer-forms/:id"
+        element={
+          <RequireAuth>
+            <TransferFormEditPage />
           </RequireAuth>
         }
       />

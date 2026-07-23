@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 const NAV_ITEMS = [
   { label: "DASHBOARD", to: "/" },
   { label: "CREATE", to: "/create" },
+  { label: "TRANSFER FORMS", to: "/transfer-forms" },
   { label: "RECORDS", to: "/records" },
   { label: "TEMPLATES", to: "/templates" },
   { label: "SIGNATORIES", to: "/signatories" },

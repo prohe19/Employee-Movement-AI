@@ -72,6 +72,40 @@ export const updateAnnouncementSchema = z.object({
 });
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementSchema>;
 
+export const transferFormSchema = z.object({
+  docNumber: z.string().optional().nullable(),
+  transferType: z.enum(["between_companies", "within_company"]).optional().nullable(),
+  movementType: movementTypeEnum.default("Transfer"),
+  title: z.string().optional().nullable(),
+  employeeName: z.string().min(1),
+  employeeId: z.string().optional().nullable(),
+  levelJs: z.number().int().optional().nullable(),
+  levelJp: z.number().int().optional().nullable(),
+  positionFrom: z.string().optional().nullable(),
+  positionTo: z.string().optional().nullable(),
+  costCenterFrom: z.string().optional().nullable(),
+  costCenterTo: z.string().optional().nullable(),
+  sectionFrom: z.string().optional().nullable(),
+  sectionTo: z.string().optional().nullable(),
+  departmentFrom: z.string().optional().nullable(),
+  departmentTo: z.string().optional().nullable(),
+  divisionFrom: z.string().optional().nullable(),
+  divisionTo: z.string().optional().nullable(),
+  locationFrom: z.string().optional().nullable(),
+  locationTo: z.string().optional().nullable(),
+  companyFrom: z.string().optional().nullable(),
+  companyTo: z.string().optional().nullable(),
+  effectiveDate: isoDate.optional().nullable(),
+  vMpp: z.boolean().optional(),
+  vOrgStructureJe: z.boolean().optional(),
+  vCompetencyGap: z.boolean().optional(),
+  vJpGap: z.boolean().optional(),
+  vYearInPosition: z.boolean().optional(),
+  vTransferReason: z.boolean().optional(),
+  vOthers: z.boolean().optional(),
+});
+export type TransferFormInput = z.infer<typeof transferFormSchema>;
+
 export const listAnnouncementsQuerySchema = z.object({
   movementType: movementTypeEnum.optional(),
   status: announcementStatusEnum.optional(),
