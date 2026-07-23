@@ -96,6 +96,42 @@ export interface AnnouncementEmployee {
   photoKey: string | null;
 }
 
+export interface TransferForm {
+  id: string;
+  docNumber: string | null;
+  transferType: "between_companies" | "within_company" | null;
+  movementType: MovementType;
+  title: string | null;
+  employeeName: string;
+  employeeId: string | null;
+  levelJs: number | null;
+  levelJp: number | null;
+  positionFrom: string | null;
+  positionTo: string | null;
+  costCenterFrom: string | null;
+  costCenterTo: string | null;
+  sectionFrom: string | null;
+  sectionTo: string | null;
+  departmentFrom: string | null;
+  departmentTo: string | null;
+  divisionFrom: string | null;
+  divisionTo: string | null;
+  locationFrom: string | null;
+  locationTo: string | null;
+  companyFrom: string | null;
+  companyTo: string | null;
+  effectiveDate: string | null;
+  vMpp: boolean;
+  vOrgStructureJe: boolean;
+  vCompetencyGap: boolean;
+  vJpGap: boolean;
+  vYearInPosition: boolean;
+  vTransferReason: boolean;
+  vOthers: boolean;
+  pdfUrl: string | null;
+  createdAt: string;
+}
+
 export interface Signatory {
   id: string;
   name: string;
