@@ -147,8 +147,10 @@ export function DashboardPage() {
           <Panel title="Activity" subtitle="Announcements per day" right={rangeSelect}>
             <ActivityHeatmap data={a.activity} days={activityDays} />
           </Panel>
-          <Panel title="Type Split" subtitle="Transfer vs Assignment">
-            <MovementDonut data={a.movementDistribution} />
+          <Panel title="Type Split" subtitle="Transfer vs Assignment" style={{ flex: 1 }}>
+            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <MovementDonut data={a.movementDistribution} />
+            </div>
           </Panel>
         </div>
         <Panel

@@ -161,8 +161,28 @@ export function OperationsMap({ nodes, arcs }: { nodes: MapNode[]; arcs: MapArc[
             </>
           ) : (
             <>
-              <div style={{ color: INK.text, fontWeight: 700 }}>{tip.data.arc.from} → {tip.data.arc.to}</div>
-              <div style={{ marginTop: 2 }}>{tip.data.arc.value} {tip.data.arc.value === 1 ? "transfer" : "transfers"}</div>
+              <div style={{ color: INK.text, fontWeight: 700 }}>
+                {tip.data.arc.from} → {tip.data.arc.to}
+              </div>
+              <div style={{ color: INK.muted, marginBottom: 4 }}>
+                {tip.data.arc.value} {tip.data.arc.value === 1 ? "movement" : "movements"}
+              </div>
+              {tip.data.arc.movements.slice(0, 6).map((m, i) => {
+                const c = m.type === "Assignment" ? GLOW.teal : GLOW.pink;
+                return (
+                  <div key={i} style={{ paddingTop: 5, marginTop: 5, borderTop: "1px solid rgba(177,74,237,0.22)" }}>
+                    <div>
+                      <span style={{ color: c, fontWeight: 700 }}>{m.type === "Assignment" ? "ASG" : "TRF"}</span>
+                      <span style={{ color: INK.text, fontWeight: 700 }}> · {m.name}</span>
+                    </div>
+                    <div style={{ color: INK.muted }}>{m.fromPosition} → {m.toPosition}</div>
+                    <div style={{ color: INK.muted }}>{m.fromSite} → {m.toSite}</div>
+                  </div>
+                );
+              })}
+              {tip.data.arc.value > 6 && (
+                <div style={{ color: INK.faint, marginTop: 4 }}>+{tip.data.arc.value - 6} more…</div>
+              )}
             </>
           )}
         </Tip>

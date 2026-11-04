@@ -27,6 +27,15 @@ interface SiteNode {
   total: number;
 }
 
+interface ArcMovement {
+  name: string;
+  type: string;
+  fromPosition: string;
+  toPosition: string;
+  fromSite: string;
+  toSite: string;
+}
+
 interface SiteArc {
   from: string;
   to: string;
@@ -35,6 +44,7 @@ interface SiteArc {
   toLat: number;
   toLng: number;
   value: number;
+  movements: ArcMovement[];
 }
 
 // Approximate coordinates for ITM group operating sites + common cities. Keyed by a
@@ -65,6 +75,10 @@ const SITE_COORDS: { key: string; lat: number; lng: number; label: string }[] = 
 
 function clean(v: string | null | undefined): string {
   return (v ?? "").trim();
+}
+
+function personName(e: { title: string | null; employeeName: string }): string {
+  return clean(e.title) ? `${clean(e.title)} ${e.employeeName}` : e.employeeName;
 }
 
 function coordFor(name: string): { lat: number; lng: number; label: string } | null {
@@ -192,9 +206,19 @@ export async function getDashboardAnalytics() {
     if (to) touchNode(to.label, to.lat, to.lng).inbound += 1;
     if (from && to && from.label !== to.label) {
       const k = `${from.label}\u0000${to.label}`;
+      const movement: ArcMovement = {
+        name: personName(e),
+        type: e.announcement?.movementType ?? "Transfer",
+        fromPosition: clean(e.currentPosition) || "—",
+        toPosition: clean(e.newPosition) || "—",
+        fromSite: from.label,
+        toSite: to.label,
+      };
       const existing = arcAgg.get(k);
-      if (existing) existing.value += 1;
-      else
+      if (existing) {
+        existing.value += 1;
+        if (existing.movements.length < 20) existing.movements.push(movement);
+      } else {
         arcAgg.set(k, {
           from: from.label,
           to: to.label,
@@ -203,7 +227,9 @@ export async function getDashboardAnalytics() {
           toLat: to.lat,
           toLng: to.lng,
           value: 1,
+          movements: [movement],
         });
+      }
     }
   }
   for (const n of nodeAgg.values()) n.total = n.inbound + n.outbound;
@@ -308,7 +334,7 @@ export async function getDashboardAnalytics() {
     .sort((a, b) => a.effectiveDate!.getTime() - b.effectiveDate!.getTime())
     .slice(0, 12)
     .map((e) => ({
-      employeeName: clean(e.title) ? `${clean(e.title)} ${e.employeeName}` : e.employeeName,
+      employeeName: personName(e),
       movementType: (e.announcement?.movementType ?? "Transfer") as MovementType,
       date: e.effectiveDate,
       from: clean(e.currentLocation) || clean(e.currentPosition) || "—",
