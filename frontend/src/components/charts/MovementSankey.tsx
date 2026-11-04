@@ -12,9 +12,7 @@ import { FILL, GLOW, INK, Tip, useHoverTip, useWidth } from "./common";
 type N = { id: string; label: string; side: "from" | "to"; x0?: number; x1?: number; y0?: number; y1?: number };
 type L = { source: string | number | N; target: string | number | N; value: number; raw: FlowLink; width?: number; y0?: number; y1?: number };
 
-const HEIGHT = 360;
-
-export function MovementSankey({ links }: { links: FlowLink[] }) {
+export function MovementSankey({ links, height = 360 }: { links: FlowLink[]; height?: number }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const { tip, move, hide } = useHoverTip<FlowLink>();
 
@@ -42,20 +40,20 @@ export function MovementSankey({ links }: { links: FlowLink[] }) {
         .nodePadding(11)
         .extent([
           [M, 6],
-          [width - M, HEIGHT - 6],
+          [width - M, height - 6],
         ]);
       return layout({ nodes: nodes.map((n) => ({ ...n })), links: sLinks.map((l) => ({ ...l })) });
     } catch {
       return null;
     }
-  }, [links, width]);
+  }, [links, width, height]);
 
   return (
     <div ref={ref} style={{ width: "100%", position: "relative" }}>
       {!graph || links.length === 0 ? (
-        <Empty />
+        <Empty height={height} />
       ) : (
-        <svg width={width} height={HEIGHT} style={{ display: "block", overflow: "visible" }}>
+        <svg width={width} height={height} style={{ display: "block", overflow: "visible" }}>
           <defs>
             <linearGradient id="sankeyRibbon" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor={FILL.pink} />
@@ -132,11 +130,11 @@ export function MovementSankey({ links }: { links: FlowLink[] }) {
   );
 }
 
-function Empty() {
+function Empty({ height }: { height: number }) {
   return (
     <div
       style={{
-        height: HEIGHT,
+        height,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
