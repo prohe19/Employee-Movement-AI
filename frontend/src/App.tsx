@@ -74,6 +74,14 @@ export function App() {
         }
       />
       <Route
+        path="/create/:id"
+        element={
+          <RequireAuth>
+            <CreatePage />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/transfer-forms"
         element={
           <RequireAuth>

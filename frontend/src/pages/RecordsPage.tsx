@@ -185,7 +185,23 @@ export function RecordsPage() {
                   <StatusPill status={a.status} />
                 )}
               </span>
-              <span style={{ textAlign: "right" }}>
+              <span style={{ textAlign: "right", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <Link
+                  to={`/create/${a.id}`}
+                  title="Edit announcement (incl. changing Transfer / Assignment)"
+                  style={{
+                    border: "1px solid rgba(177,74,237,0.45)",
+                    color: "#c98bff",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.05em",
+                    padding: "5px 10px",
+                    textDecoration: "none",
+                  }}
+                >
+                  EDIT
+                </Link>
                 <button
                   onClick={() => handleDelete(a)}
                   disabled={deletingId === a.id}
