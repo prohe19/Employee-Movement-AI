@@ -75,6 +75,24 @@ function coordFor(name: string): { lat: number; lng: number; label: string } | n
   return null;
 }
 
+function isKtd(company: string): boolean {
+  const c = company.toLowerCase();
+  return c.includes("kitadin") || /\bktd\b/.test(c);
+}
+const SAMARINDA = SITE_COORDS.find((s) => s.key === "samarinda")!;
+
+/**
+ * Resolve a movement endpoint to a mappable site. Prefer the real geographic site
+ * when the location names a known city (so a KTD employee in Jakarta maps to Jakarta);
+ * otherwise fall back by entity — KTD (Kitadin) records without a city sit at Samarinda.
+ */
+function resolveSite(location: string, company: string): { lat: number; lng: number; label: string } | null {
+  const city = coordFor(location);
+  if (city) return city;
+  if (isKtd(company)) return { lat: SAMARINDA.lat, lng: SAMARINDA.lng, label: SAMARINDA.label };
+  return null;
+}
+
 function monthKey(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
@@ -105,6 +123,7 @@ export async function getDashboardAnalytics() {
         status: true,
         announcementDate: true,
         createdAt: true,
+        creator: { select: { fullName: true, username: true } },
       },
     }),
     prisma.announcementEmployee.findMany({
@@ -167,8 +186,8 @@ export async function getDashboardAnalytics() {
     return nodeAgg.get(label)!;
   };
   for (const e of employees) {
-    const from = coordFor(clean(e.currentLocation));
-    const to = coordFor(clean(e.newLocation));
+    const from = resolveSite(clean(e.currentLocation), clean(e.currentCompany));
+    const to = resolveSite(clean(e.newLocation), clean(e.newCompany));
     if (from) touchNode(from.label, from.lat, from.lng).outbound += 1;
     if (to) touchNode(to.label, to.lat, to.lng).inbound += 1;
     if (from && to && from.label !== to.label) {
@@ -196,7 +215,7 @@ export async function getDashboardAnalytics() {
   let lateral = 0;
   let down = 0;
   let unknown = 0;
-  const deptPromo = new Map<string, { up: number; total: number }>();
+  const deptPromo = new Map<string, { up: number; down: number; total: number }>();
   for (const e of employees) {
     const dept = clean(e.newDepartment) || clean(e.currentDepartment);
     if (e.currentJs != null && e.newJs != null) {
@@ -212,9 +231,10 @@ export async function getDashboardAnalytics() {
         kind = "lateral";
       }
       if (dept) {
-        const d = deptPromo.get(dept) ?? { up: 0, total: 0 };
+        const d = deptPromo.get(dept) ?? { up: 0, down: 0, total: 0 };
         d.total += 1;
         if (kind === "up") d.up += 1;
+        else if (kind === "down") d.down += 1;
         deptPromo.set(dept, d);
       }
     } else {
@@ -224,9 +244,9 @@ export async function getDashboardAnalytics() {
   const promoKnown = up + lateral + down;
   const promotionRate = promoKnown > 0 ? Math.round((up / promoKnown) * 100) : 0;
   const promotionsByDept = [...deptPromo.entries()]
-    .map(([department, v]) => ({ department, up: v.up, total: v.total }))
+    .map(([department, v]) => ({ department, up: v.up, down: v.down, total: v.total }))
     .sort((a, b) => b.up - a.up || b.total - a.total)
-    .slice(0, 6);
+    .slice(0, 7);
 
   // ---- Trend over last 12 months (Transfer vs Assignment) ----
   const months: { month: string; label: string; transfer: number; assignment: number }[] = [];
@@ -272,16 +292,29 @@ export async function getDashboardAnalytics() {
     departments: rank((e) => e.newDepartment ?? e.currentDepartment ?? ""),
   };
 
-  // ---- Activity heatmap (last 26 weeks, by announcement date) ----
-  const activityStart = new Date(now.getTime() - 181 * 24 * 60 * 60 * 1000);
+  // ---- Activity heatmap (all-time daily counts; the UI windows it by range) ----
   const activity = new Map<string, number>();
   for (const a of announcements) {
     const d = new Date(a.announcementDate);
-    if (d >= activityStart && d <= now) activity.set(dayKey(d), (activity.get(dayKey(d)) ?? 0) + 1);
+    if (d <= now) activity.set(dayKey(d), (activity.get(dayKey(d)) ?? 0) + 1);
   }
   const activityDays = [...activity.entries()]
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  // ---- Contributors (who entered the data), split by movement type ----
+  const contribMap = new Map<string, { name: string; transfers: number; assignments: number }>();
+  for (const an of announcements) {
+    const name = clean(an.creator?.fullName) || clean(an.creator?.username) || "Unknown";
+    const c = contribMap.get(name) ?? { name, transfers: 0, assignments: 0 };
+    if (an.movementType === "Assignment") c.assignments += 1;
+    else c.transfers += 1;
+    contribMap.set(name, c);
+  }
+  const contributors = [...contribMap.values()]
+    .map((c) => ({ ...c, total: c.transfers + c.assignments }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
 
   // ---- Upcoming pipeline (next 30 days) ----
   const upcoming = employees
@@ -323,6 +356,7 @@ export async function getDashboardAnalytics() {
     trend: months,
     statusFunnel,
     leaderboards,
+    contributors,
     activity: activityDays,
     upcoming,
   };

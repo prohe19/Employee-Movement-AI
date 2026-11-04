@@ -121,16 +121,16 @@ export function Leaderboard({ items, accent = FILL.pink, glow = GLOW.pink }: { i
 
 /* ------------------------- Activity heatmap ------------------------- */
 
-export function ActivityHeatmap({ data }: { data: DashboardAnalytics["activity"] }) {
+export function ActivityHeatmap({ data, days }: { data: DashboardAnalytics["activity"]; days: number }) {
   const { tip, move, hide } = useHoverTip<{ date: string; count: number }>();
   const counts = new Map(data.map((d) => [d.date, d.count]));
   const max = Math.max(1, ...data.map((d) => d.count));
 
-  // Build last 26 weeks ending this week (Sunday-started columns).
+  // Build the trailing window of `days`, as Sunday-started week columns.
   const today = new Date();
   const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  const WEEKS = 26;
-  const start = new Date(end.getTime() - (WEEKS * 7 - 1) * 86400000);
+  const lowerBound = new Date(end.getTime() - (days - 1) * 86400000);
+  const start = new Date(lowerBound);
   start.setUTCDate(start.getUTCDate() - start.getUTCDay()); // back to Sunday
 
   const cell = 12;
@@ -141,7 +141,7 @@ export function ActivityHeatmap({ data }: { data: DashboardAnalytics["activity"]
     const col: { date: string; count: number }[] = [];
     for (let d = 0; d < 7; d++) {
       const key = cursor.toISOString().slice(0, 10);
-      col.push({ date: key, count: cursor <= end && cursor >= new Date(end.getTime() - 181 * 86400000) ? counts.get(key) ?? 0 : -1 });
+      col.push({ date: key, count: cursor <= end && cursor >= lowerBound ? counts.get(key) ?? 0 : -1 });
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     cols.push(col);
@@ -192,6 +192,51 @@ export function ActivityHeatmap({ data }: { data: DashboardAnalytics["activity"]
         <Tip x={tip.x} y={tip.y}>
           <div style={{ color: INK.text, fontWeight: 700 }}>{tip.data.date}</div>
           <div>{tip.data.count} announcement{tip.data.count === 1 ? "" : "s"}</div>
+        </Tip>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------- Contributors ------------------------- */
+
+export function Contributors({ data }: { data: DashboardAnalytics["contributors"] }) {
+  const { tip, move, hide } = useHoverTip<DashboardAnalytics["contributors"][number]>();
+  const max = Math.max(1, ...data.map((d) => d.total));
+  if (data.length === 0)
+    return <div style={{ color: INK.faint, fontFamily: "var(--font-mono)", fontSize: 11.5 }}>No contributor data yet.</div>;
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: 10.5, color: INK.muted }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: MOVEMENT_COLOR.Transfer, boxShadow: `0 0 7px ${MOVEMENT_GLOW.Transfer}` }} /> Transfer
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: 10.5, color: INK.muted }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: MOVEMENT_COLOR.Assignment, boxShadow: `0 0 7px ${MOVEMENT_GLOW.Assignment}` }} /> Assignment
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {data.map((c) => (
+          <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-mono)", fontSize: 11 }} onMouseMove={(e) => move(e, c)} onMouseLeave={hide}>
+            <span style={{ width: 120, color: INK.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={c.name}>{c.name}</span>
+            <div style={{ flex: 1, display: "flex", gap: 2, height: 16, alignItems: "center" }}>
+              {c.transfers > 0 && (
+                <div style={{ width: `${(c.transfers / max) * 100}%`, height: "100%", background: MOVEMENT_COLOR.Transfer, boxShadow: `0 0 7px ${MOVEMENT_GLOW.Transfer}55`, borderRadius: 2, minWidth: 2 }} />
+              )}
+              {c.assignments > 0 && (
+                <div style={{ width: `${(c.assignments / max) * 100}%`, height: "100%", background: MOVEMENT_COLOR.Assignment, boxShadow: `0 0 7px ${MOVEMENT_GLOW.Assignment}55`, borderRadius: 2, minWidth: 2 }} />
+              )}
+            </div>
+            <span style={{ width: 30, textAlign: "right", color: INK.text, fontWeight: 700 }}>{c.total}</span>
+          </div>
+        ))}
+      </div>
+      {tip && (
+        <Tip x={tip.x} y={tip.y}>
+          <div style={{ color: INK.text, fontWeight: 700 }}>{tip.data.name}</div>
+          <div style={{ color: MOVEMENT_GLOW.Transfer }}>Transfers: {tip.data.transfers}</div>
+          <div style={{ color: MOVEMENT_GLOW.Assignment }}>Assignments: {tip.data.assignments}</div>
+          <div style={{ color: INK.muted, marginTop: 2 }}>Total: {tip.data.total}</div>
         </Tip>
       )}
     </div>
