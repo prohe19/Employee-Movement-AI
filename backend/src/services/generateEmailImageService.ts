@@ -3,7 +3,13 @@ import type { AnnouncementEmployee } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { ApiError } from "../lib/errors";
 import { getAnnouncement } from "./announcementService";
-import { buildEmailImageHtml, emailCategory, type EmailEmployeeInput } from "./emailTemplateService";
+import {
+  buildEmailImageHtml,
+  emailCategory,
+  type EmailCategory,
+  type EmailEmployeeInput,
+  type EmailTense,
+} from "./emailTemplateService";
 import { emailLogoDataUri } from "./emailLogos";
 import { renderHtmlToPng } from "./pdfService";
 import { getStorageDriver } from "./storage";
@@ -28,7 +34,16 @@ async function photoDataUri(employee: AnnouncementEmployee): Promise<string> {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
 
-export async function generateAnnouncementEmailImage(id: string, userId: string) {
+/**
+ * Builds the self-contained email-image HTML for an announcement (fonts, background,
+ * photos and logo all inlined as data URIs). Shared by the PNG generator and the live
+ * preview endpoint so the on-screen preview is pixel-identical to the generated PNG.
+ * Throws an ApiError when the movement type is unsupported, there are no employees,
+ * there are more than three, or an employee photo is missing.
+ */
+export async function buildAnnouncementEmailHtml(
+  id: string
+): Promise<{ html: string; category: EmailCategory; tense: EmailTense }> {
   const announcement = await getAnnouncement(id);
 
   if (!emailCategory(announcement.movementType)) {
@@ -62,17 +77,21 @@ export async function generateAnnouncementEmailImage(id: string, userId: string)
     }))
   );
 
-  const { html } = buildEmailImageHtml({
+  return buildEmailImageHtml({
     movementType: announcement.movementType,
     employees,
     announcementDate: announcement.announcementDate,
     logoDataUri: emailLogoDataUri(announcement.emailLogoKey),
   });
+}
+
+export async function generateAnnouncementEmailImage(id: string, userId: string) {
+  const { html } = await buildAnnouncementEmailHtml(id);
 
   const pngBuffer = await renderHtmlToPng(html, 1280, 720);
 
   const storage = getStorageDriver();
-  const key = `announcements/${announcement.id}/email-${Date.now()}.png`;
+  const key = `announcements/${id}/email-${Date.now()}.png`;
   const stored = await storage.save({ buffer: pngBuffer, key, contentType: "image/png" });
 
   const updated = await prisma.announcement.update({

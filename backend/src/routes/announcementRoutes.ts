@@ -21,7 +21,10 @@ import {
   validateAnnouncementById,
 } from "../services/announcementService";
 import { generateAnnouncementPdf } from "../services/generatePdfService";
-import { generateAnnouncementEmailImage } from "../services/generateEmailImageService";
+import {
+  buildAnnouncementEmailHtml,
+  generateAnnouncementEmailImage,
+} from "../services/generateEmailImageService";
 import { getStorageDriver } from "../services/storage";
 
 const upload = multer({
@@ -136,6 +139,16 @@ router.post(
   asyncHandler(async (req, res) => {
     const announcement = await generateAnnouncementEmailImage(req.params.id, req.user!.id);
     res.json({ announcement });
+  })
+);
+
+// Live body-email preview: returns the same self-contained HTML the PNG is rendered
+// from, so the UI can show it immediately (no "generate" click needed).
+router.get(
+  "/:id/email-preview",
+  asyncHandler(async (req, res) => {
+    const { html } = await buildAnnouncementEmailHtml(req.params.id);
+    res.json({ html });
   })
 );
 
