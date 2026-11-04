@@ -265,16 +265,6 @@ export function MovementDetailsStep({ state, patch, onNext }: Props) {
                     style={{ minHeight: 40, fontSize: 12.5 }}
                   />
                 </div>
-                <div>
-                  <span style={labelStyle}>NEW JS (FOR PROMOTIONS)</span>
-                  <input
-                    className="input"
-                    type="number"
-                    value={emp.newJs}
-                    onChange={(e) => setEmployee(index, "newJs", e.target.value)}
-                    style={{ minHeight: 40, fontSize: 12.5 }}
-                  />
-                </div>
               </div>
             </div>
 

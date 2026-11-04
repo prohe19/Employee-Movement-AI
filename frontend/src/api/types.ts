@@ -259,7 +259,7 @@ export interface DashboardAnalytics {
   kpis: {
     totalAnnouncements: number;
     employeesMoved: number;
-    promotionRate: number;
+    transferRate: number;
     transfers: number;
     assignments: number;
     requiresReview: number;
@@ -270,13 +270,12 @@ export interface DashboardAnalytics {
   movementDistribution: { movementType: MovementType; count: number }[];
   flows: Record<FlowDimension, FlowLink[]>;
   map: { nodes: MapNode[]; arcs: MapArc[] };
-  promotions: {
-    up: number;
-    lateral: number;
-    down: number;
-    unknown: number;
-    promotionRate: number;
-    byDepartment: { department: string; up: number; down: number; total: number }[];
+  movementRates: {
+    transfers: number;
+    assignments: number;
+    total: number;
+    transferRate: number;
+    byDepartment: { department: string; transfers: number; assignments: number; total: number }[];
   };
   trend: { month: string; label: string; transfer: number; assignment: number }[];
   statusFunnel: { status: string; label: string; count: number }[];

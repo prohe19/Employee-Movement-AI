@@ -3,11 +3,11 @@ import { prisma } from "../lib/prisma";
 
 /**
  * Rich dashboard analytics. Aggregates the before→after movement data (company,
- * location, department, job scale) into flows, a geographic site map, promotion
- * stats, trends, a status funnel, leaderboards and an activity heatmap.
+ * location, department) into flows, a geographic site map, Transfer/Assignment
+ * rates, trends, a status funnel, leaderboards and an activity heatmap.
  *
  * Volumes for HR announcements are modest, so we fetch the rows once and aggregate
- * in JS — far simpler than expressing flow/promotion logic in SQL.
+ * in JS — far simpler than expressing flow/rate logic in SQL.
  */
 
 type FlowDim = "company" | "location" | "department";
@@ -210,42 +210,28 @@ export async function getDashboardAnalytics() {
   const mapNodes = [...nodeAgg.values()].sort((a, b) => b.total - a.total);
   const mapArcs = [...arcAgg.values()].sort((a, b) => b.value - a.value).slice(0, 30);
 
-  // ---- Promotions (job-scale) ----
-  let up = 0;
-  let lateral = 0;
-  let down = 0;
-  let unknown = 0;
-  const deptPromo = new Map<string, { up: number; down: number; total: number }>();
+  // ---- Movement rates: Transfer vs Assignment (overall + by department) ----
+  // Every movement is lateral, so we track the Transfer/Assignment mix, not job-scale.
+  let empTransfers = 0;
+  let empAssignments = 0;
+  const deptMove = new Map<string, { transfers: number; assignments: number }>();
   for (const e of employees) {
+    const isAssignment = (e.announcement?.movementType ?? "Transfer") === "Assignment";
+    if (isAssignment) empAssignments += 1;
+    else empTransfers += 1;
     const dept = clean(e.newDepartment) || clean(e.currentDepartment);
-    if (e.currentJs != null && e.newJs != null) {
-      let kind: "up" | "lateral" | "down";
-      if (e.newJs > e.currentJs) {
-        up += 1;
-        kind = "up";
-      } else if (e.newJs < e.currentJs) {
-        down += 1;
-        kind = "down";
-      } else {
-        lateral += 1;
-        kind = "lateral";
-      }
-      if (dept) {
-        const d = deptPromo.get(dept) ?? { up: 0, down: 0, total: 0 };
-        d.total += 1;
-        if (kind === "up") d.up += 1;
-        else if (kind === "down") d.down += 1;
-        deptPromo.set(dept, d);
-      }
-    } else {
-      unknown += 1;
+    if (dept) {
+      const d = deptMove.get(dept) ?? { transfers: 0, assignments: 0 };
+      if (isAssignment) d.assignments += 1;
+      else d.transfers += 1;
+      deptMove.set(dept, d);
     }
   }
-  const promoKnown = up + lateral + down;
-  const promotionRate = promoKnown > 0 ? Math.round((up / promoKnown) * 100) : 0;
-  const promotionsByDept = [...deptPromo.entries()]
-    .map(([department, v]) => ({ department, up: v.up, down: v.down, total: v.total }))
-    .sort((a, b) => b.up - a.up || b.total - a.total)
+  const empTotal = empTransfers + empAssignments;
+  const transferRate = empTotal > 0 ? Math.round((empTransfers / empTotal) * 100) : 0;
+  const movementByDept = [...deptMove.entries()]
+    .map(([department, v]) => ({ department, transfers: v.transfers, assignments: v.assignments, total: v.transfers + v.assignments }))
+    .sort((a, b) => b.total - a.total)
     .slice(0, 7);
 
   // ---- Trend over last 12 months (Transfer vs Assignment) ----
@@ -334,7 +320,7 @@ export async function getDashboardAnalytics() {
     kpis: {
       totalAnnouncements: announcements.length,
       employeesMoved: employees.length,
-      promotionRate,
+      transferRate,
       transfers: transfersCount,
       assignments: assignmentsCount,
       requiresReview: statusCount.get("RequiresReview") ?? 0,
@@ -352,7 +338,7 @@ export async function getDashboardAnalytics() {
     ],
     flows,
     map: { nodes: mapNodes, arcs: mapArcs },
-    promotions: { up, lateral, down, unknown, promotionRate, byDepartment: promotionsByDept },
+    movementRates: { transfers: empTransfers, assignments: empAssignments, total: empTotal, transferRate, byDepartment: movementByDept },
     trend: months,
     statusFunnel,
     leaderboards,

@@ -186,9 +186,8 @@ async function main() {
     const employees = [];
     for (let j = 0; j < empCount; j++) {
       const currentJs = 8 + Math.floor(rnd() * 10); // 8..17
-      // ~45% promotion, ~45% lateral, ~10% down
-      const r = rnd();
-      const newJs = r < 0.45 ? Math.min(20, currentJs + 1 + Math.floor(rnd() * 2)) : r < 0.9 ? currentJs : Math.max(6, currentJs - 1);
+      // Movements are lateral — job scale stays the same.
+      const newJs = currentJs;
 
       const fromCompany = pick(COMPANIES);
       let toCompany = fromCompany;
