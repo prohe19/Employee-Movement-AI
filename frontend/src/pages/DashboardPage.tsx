@@ -56,7 +56,25 @@ export function DashboardPage() {
   const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("6m");
 
   useEffect(() => {
-    dashboardApi.analytics().then(setA).catch((e) => setError(e.message));
+    let active = true;
+    const load = () =>
+      dashboardApi
+        .analytics()
+        .then((d) => active && setA(d))
+        .catch((e) => active && setError(e.message));
+    load();
+    // Refetch when the user returns to the dashboard (e.g. after adding records),
+    // so the charts reflect the live database without a hard reload.
+    const onFocus = () => {
+      if (document.visibilityState !== "hidden") load();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, []);
 
   const activityDays = useMemo(() => {
