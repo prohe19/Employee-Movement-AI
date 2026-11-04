@@ -19,6 +19,13 @@ export const env = {
   jwtSecret: required("JWT_SECRET", "dev-only-insecure-secret-change-me"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   cookieName: process.env.COOKIE_NAME ?? "emai_session",
+  // Mark the session cookie Secure (HTTPS only). Defaults to production, but set
+  // COOKIE_SECURE=false when self-hosting over plain HTTP on a LAN so login works
+  // from other devices (browsers still allow Secure cookies on localhost itself).
+  cookieSecure:
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
 
   storageDriver: (process.env.STORAGE_DRIVER as "local" | "s3") ?? "local",

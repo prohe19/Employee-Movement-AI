@@ -49,9 +49,14 @@ and settings.
 
 ## Put it online (deploy)
 
-To host it for your team at a real web link, see **[DEPLOY.md](DEPLOY.md)** — a click-by-click
-Railway walkthrough. The app is packaged (via the root `Dockerfile`) to deploy as a single service
-plus a PostgreSQL database, with the PDF engine's Chromium bundled in.
+**Self-host (recommended — free, runs anywhere Docker runs):** see **[SELF_HOSTING.md](SELF_HOSTING.md)**.
+From the repo root: `cp .env.example .env`, set the values, then `docker compose up -d --build`.
+Brings up the app + PostgreSQL + the Chromium PDF engine, with data in persistent volumes.
+Update later with `git pull && docker compose up -d --build`.
+
+To host it on a managed platform instead, see **[DEPLOY.md](DEPLOY.md)**. The app is packaged
+(via the root `Dockerfile`) to deploy as a single service plus a PostgreSQL database, with the
+PDF engine's Chromium bundled in.
 
 ## What's implemented
 
