@@ -11,8 +11,8 @@ interface AppShellProps {
 /** Standard authenticated page: gridded backdrop + framed panel + nav + header. */
 export function AppShell({ eyebrow, title, actions, children }: AppShellProps) {
   return (
-    <div className="neon-backdrop" style={{ padding: "32px 40px" }}>
-      <div className="frame" style={{ maxWidth: 1440, margin: "0 auto" }}>
+    <div className="neon-backdrop" style={{ padding: "26px 28px" }}>
+      <div className="frame" style={{ maxWidth: "min(1920px, 96vw)", margin: "0 auto" }}>
         <div className="frame-inner">
           <NavBar />
           {(title || actions) && (

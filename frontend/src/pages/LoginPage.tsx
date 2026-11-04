@@ -69,7 +69,7 @@ export function LoginPage() {
             <PrismLogo size={52} />
             <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
               <span style={{ fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
-                ITM HR COMMUNICATION
+                ITM HUMAN RESOURCES
               </span>
               <span
                 style={{
@@ -80,7 +80,7 @@ export function LoginPage() {
                   color: "rgba(177,74,237,0.85)",
                 }}
               >
-                // EMPLOYEE MOVEMENT ANALYSIS
+                // ITM MOBILITY CENTER
               </span>
             </div>
           </div>

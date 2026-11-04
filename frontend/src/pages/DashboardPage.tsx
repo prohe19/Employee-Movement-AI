@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { StatusPill } from "../components/ui";
 import { PrismLogo } from "../components/PrismLogo";
 import { dashboardApi } from "../api/endpoints";
-import type { DashboardAnalytics, FlowDimension } from "../api/types";
-import { FILL, GLOW, INK, Panel, fmt, useCountUp } from "../components/charts/common";
+import type { DashboardAnalytics, DashboardSummary, FlowDimension } from "../api/types";
+import { MOVEMENT_TYPE_LABELS } from "../lib/format";
+import { FILL, GLOW, INK, Panel } from "../components/charts/common";
 import { MovementSankey } from "../components/charts/MovementSankey";
 import { OperationsMap } from "../components/charts/OperationsMap";
-import { MovementRatePanel } from "../components/charts/MovementRatePanel";
 import { TrendArea } from "../components/charts/TrendArea";
 import {
   ActivityHeatmap,
@@ -50,6 +51,7 @@ const GRID_CSS = `
 
 export function DashboardPage() {
   const [a, setA] = useState<DashboardAnalytics | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flowDim, setFlowDim] = useState<FlowDimension>("company");
   const [lbTab, setLbTab] = useState<(typeof LB_TABS)[number]["key"]>("destinations");
@@ -57,14 +59,13 @@ export function DashboardPage() {
 
   useEffect(() => {
     let active = true;
-    const load = () =>
-      dashboardApi
-        .analytics()
-        .then((d) => active && setA(d))
-        .catch((e) => active && setError(e.message));
+    const load = () => {
+      dashboardApi.analytics().then((d) => active && setA(d)).catch((e) => active && setError(e.message));
+      dashboardApi.summary().then((d) => active && setSummary(d)).catch(() => {});
+    };
     load();
-    // Refetch when the user returns to the dashboard (e.g. after adding records),
-    // so the charts reflect the live database without a hard reload.
+    // Refetch when the user returns to the dashboard, so the charts reflect the
+    // live database without a hard reload.
     const onFocus = () => {
       if (document.visibilityState !== "hidden") load();
     };
@@ -120,7 +121,7 @@ export function DashboardPage() {
       title="Dashboard"
       actions={
         <Link to="/create" className="btn" style={{ textDecoration: "none" }}>
-          + NEW ANNOUNCEMENT
+          + NEW MOVEMENT
         </Link>
       }
     >
@@ -133,15 +134,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(165px, 1fr))", gap: 14, marginTop: 20 }}>
-        <Kpi label="Total Announcements" value={a.kpis.totalAnnouncements} color={GLOW.pink} />
-        <Kpi label="Employees Moved" value={a.kpis.employeesMoved} color={GLOW.teal} />
-        <Kpi label="Transfer Rate" value={a.kpis.transferRate} suffix="%" color="#34d399" />
-        <Kpi label="Requires Review" value={a.kpis.requiresReview} color={GLOW.amber} />
-        <Kpi label="Next 30 Days" value={a.kpis.upcoming30} color={GLOW.purple} />
-      </div>
-
       {/* operations map (full width) */}
       <div className="dash-grid dash-full">
         <Panel title="Operations Map" subtitle="Site movement network — node size = volume, arcs = transfers">
@@ -149,14 +141,14 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* activity + transfer/assignment rate (left stack) | movement flow (tall) */}
+      {/* activity + type split (left stack) | movement flow (tall) */}
       <div className="dash-grid dash-r2">
         <div className="r2-left">
           <Panel title="Activity" subtitle="Announcements per day" right={rangeSelect}>
             <ActivityHeatmap data={a.activity} days={activityDays} />
           </Panel>
-          <Panel title="Transfer / Assignment" subtitle="Movement-type rate & by department">
-            <MovementRatePanel data={a.movementRates} />
+          <Panel title="Type Split" subtitle="Transfer vs Assignment">
+            <MovementDonut data={a.movementDistribution} />
           </Panel>
         </div>
         <Panel
@@ -176,13 +168,10 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* trend + type split + leaderboards */}
+      {/* trend + leaderboards + status funnel */}
       <div className="dash-grid dash-3">
         <Panel title="Movement Trend" subtitle="Last 12 months">
           <TrendArea data={a.trend} />
-        </Panel>
-        <Panel title="Type Split" subtitle="Transfer vs Assignment">
-          <MovementDonut data={a.movementDistribution} />
         </Panel>
         <Panel
           title="Leaderboards"
@@ -199,35 +188,36 @@ export function DashboardPage() {
         >
           <Leaderboard items={a.leaderboards[lbTab]} accent={LB_TABS.find((t) => t.key === lbTab)!.accent} glow={LB_TABS.find((t) => t.key === lbTab)!.glow} />
         </Panel>
+        <Panel title="Status Funnel" subtitle="Pipeline">
+          <StatusFunnel data={a.statusFunnel} />
+        </Panel>
       </div>
 
-      {/* contributors + status funnel + upcoming */}
+      {/* contributors + recent announcements + upcoming */}
       <div className="dash-grid dash-3">
         <Panel title="Contributors" subtitle="Who entered the data — by movement type">
           <Contributors data={a.contributors} />
         </Panel>
-        <Panel title="Status Funnel" subtitle="Pipeline">
-          <StatusFunnel data={a.statusFunnel} />
+        <Panel title="Recent Announcements" subtitle="Latest activity" right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {(summary?.recentAnnouncements ?? []).length === 0 && (
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: INK.faint }}>
+                No announcements yet — <Link to="/create">create your first</Link>.
+              </div>
+            )}
+            {summary?.recentAnnouncements.slice(0, 7).map((an) => (
+              <div key={an.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr auto", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid rgba(177,74,237,0.1)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                <span style={{ color: INK.text, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{an.number}</span>
+                <span style={{ color: INK.muted }}>{MOVEMENT_TYPE_LABELS[an.movementType]}</span>
+                <span style={{ justifySelf: "end" }}><StatusPill status={an.status} /></span>
+              </div>
+            ))}
+          </div>
         </Panel>
         <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
           <UpcomingPipeline data={a.upcoming} />
         </Panel>
       </div>
     </AppShell>
-  );
-}
-
-function Kpi({ label, value, color, suffix }: { label: string; value: number; color: string; suffix?: string }) {
-  const v = useCountUp(value);
-  return (
-    <div style={{ background: "var(--panel)", border: "1px solid rgba(255,42,109,0.2)", padding: "14px 16px", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color, boxShadow: `0 0 10px ${color}` }} />
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.08em", color: "rgba(177,74,237,0.9)", textTransform: "uppercase" }}>
-        // {label}
-      </div>
-      <div style={{ fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 32, color, marginTop: 8, textShadow: `0 0 16px ${color}55`, lineHeight: 1 }}>
-        {fmt(v)}{suffix}
-      </div>
-    </div>
   );
 }
