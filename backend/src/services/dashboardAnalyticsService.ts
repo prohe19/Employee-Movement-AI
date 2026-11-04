@@ -1,0 +1,329 @@
+import type { MovementType } from "@prisma/client";
+import { prisma } from "../lib/prisma";
+
+/**
+ * Rich dashboard analytics. Aggregates the before→after movement data (company,
+ * location, department, job scale) into flows, a geographic site map, promotion
+ * stats, trends, a status funnel, leaderboards and an activity heatmap.
+ *
+ * Volumes for HR announcements are modest, so we fetch the rows once and aggregate
+ * in JS — far simpler than expressing flow/promotion logic in SQL.
+ */
+
+type FlowDim = "company" | "location" | "department";
+
+interface FlowLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+interface SiteNode {
+  name: string;
+  lat: number;
+  lng: number;
+  inbound: number;
+  outbound: number;
+  total: number;
+}
+
+interface SiteArc {
+  from: string;
+  to: string;
+  fromLat: number;
+  fromLng: number;
+  toLat: number;
+  toLng: number;
+  value: number;
+}
+
+// Approximate coordinates for ITM group operating sites + common cities. Keyed by a
+// normalized token; matched by substring so "Bontang Site" → Bontang, etc.
+const SITE_COORDS: { key: string; lat: number; lng: number; label: string }[] = [
+  { key: "jakarta", lat: -6.2088, lng: 106.8456, label: "Jakarta" },
+  { key: "balikpapan", lat: -1.2379, lng: 116.8529, label: "Balikpapan" },
+  { key: "samarinda", lat: -0.5017, lng: 117.1536, label: "Samarinda" },
+  { key: "bontang", lat: 0.1324, lng: 117.49, label: "Bontang" },
+  { key: "sangatta", lat: 0.3833, lng: 117.5333, label: "Sangatta" },
+  { key: "tenggarong", lat: -0.3999, lng: 116.9667, label: "Tenggarong" },
+  { key: "embalut", lat: -0.45, lng: 117.05, label: "Embalut" },
+  { key: "melak", lat: -0.1667, lng: 115.75, label: "Melak" },
+  { key: "barong", lat: -0.2, lng: 115.6, label: "Barong Tongkok" },
+  { key: "bharinto", lat: -0.55, lng: 115.1, label: "Bharinto" },
+  { key: "trubaindo", lat: -0.17, lng: 115.72, label: "Trubaindo" },
+  { key: "jorong", lat: -3.9333, lng: 114.75, label: "Jorong" },
+  { key: "tanjung enim", lat: -3.7667, lng: 103.7667, label: "Tanjung Enim" },
+  { key: "tanjungenim", lat: -3.7667, lng: 103.7667, label: "Tanjung Enim" },
+  { key: "palembang", lat: -2.9761, lng: 104.7754, label: "Palembang" },
+  { key: "berau", lat: 2.1667, lng: 117.3, label: "Berau" },
+  { key: "banjarmasin", lat: -3.3194, lng: 114.5908, label: "Banjarmasin" },
+  { key: "surabaya", lat: -7.2575, lng: 112.7521, label: "Surabaya" },
+  { key: "bandung", lat: -6.9175, lng: 107.6191, label: "Bandung" },
+  { key: "makassar", lat: -5.1477, lng: 119.4327, label: "Makassar" },
+  { key: "pontianak", lat: -0.0263, lng: 109.3425, label: "Pontianak" },
+];
+
+function clean(v: string | null | undefined): string {
+  return (v ?? "").trim();
+}
+
+function coordFor(name: string): { lat: number; lng: number; label: string } | null {
+  const n = name.toLowerCase();
+  for (const s of SITE_COORDS) {
+    if (n.includes(s.key)) return { lat: s.lat, lng: s.lng, label: s.label };
+  }
+  return null;
+}
+
+function monthKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+const STATUS_ORDER = ["Draft", "RequiresReview", "ReadyToGenerate", "Finalized", "Published"];
+const STATUS_LABELS: Record<string, string> = {
+  Draft: "Draft",
+  RequiresReview: "Requires Review",
+  ReadyToGenerate: "Ready",
+  Finalized: "Finalized",
+  Published: "Published",
+};
+
+export async function getDashboardAnalytics() {
+  const now = new Date();
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const [announcements, employees] = await Promise.all([
+    prisma.announcement.findMany({
+      select: {
+        id: true,
+        movementType: true,
+        status: true,
+        announcementDate: true,
+        createdAt: true,
+      },
+    }),
+    prisma.announcementEmployee.findMany({
+      select: {
+        employeeName: true,
+        title: true,
+        currentJs: true,
+        newJs: true,
+        currentCompany: true,
+        newCompany: true,
+        currentLocation: true,
+        newLocation: true,
+        currentDepartment: true,
+        newDepartment: true,
+        currentPosition: true,
+        newPosition: true,
+        effectiveDate: true,
+        announcement: { select: { movementType: true } },
+      },
+    }),
+  ]);
+
+  // ---- KPIs ----
+  const transfersCount = announcements.filter((a) => a.movementType === "Transfer").length;
+  const assignmentsCount = announcements.filter((a) => a.movementType === "Assignment").length;
+
+  // ---- Flows (Sankey) for each dimension ----
+  const flowFor = (pick: (e: (typeof employees)[number]) => [string, string]): FlowLink[] => {
+    const map = new Map<string, number>();
+    for (const e of employees) {
+      const [from, to] = pick(e);
+      const s = clean(from);
+      const t = clean(to);
+      if (!s || !t || s === t) continue;
+      const k = `${s}\u0000${t}`;
+      map.set(k, (map.get(k) ?? 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([k, value]) => {
+        const [source, target] = k.split("\u0000");
+        return { source, target, value };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 24);
+  };
+
+  const flows: Record<FlowDim, FlowLink[]> = {
+    company: flowFor((e) => [e.currentCompany ?? "", e.newCompany ?? ""]),
+    location: flowFor((e) => [e.currentLocation ?? "", e.newLocation ?? ""]),
+    department: flowFor((e) => [e.currentDepartment ?? "", e.newDepartment ?? ""]),
+  };
+
+  // ---- Geographic site map (nodes + arcs from location moves) ----
+  const nodeAgg = new Map<string, SiteNode>();
+  const arcAgg = new Map<string, SiteArc>();
+  const touchNode = (label: string, lat: number, lng: number) => {
+    if (!nodeAgg.has(label)) {
+      nodeAgg.set(label, { name: label, lat, lng, inbound: 0, outbound: 0, total: 0 });
+    }
+    return nodeAgg.get(label)!;
+  };
+  for (const e of employees) {
+    const from = coordFor(clean(e.currentLocation));
+    const to = coordFor(clean(e.newLocation));
+    if (from) touchNode(from.label, from.lat, from.lng).outbound += 1;
+    if (to) touchNode(to.label, to.lat, to.lng).inbound += 1;
+    if (from && to && from.label !== to.label) {
+      const k = `${from.label}\u0000${to.label}`;
+      const existing = arcAgg.get(k);
+      if (existing) existing.value += 1;
+      else
+        arcAgg.set(k, {
+          from: from.label,
+          to: to.label,
+          fromLat: from.lat,
+          fromLng: from.lng,
+          toLat: to.lat,
+          toLng: to.lng,
+          value: 1,
+        });
+    }
+  }
+  for (const n of nodeAgg.values()) n.total = n.inbound + n.outbound;
+  const mapNodes = [...nodeAgg.values()].sort((a, b) => b.total - a.total);
+  const mapArcs = [...arcAgg.values()].sort((a, b) => b.value - a.value).slice(0, 30);
+
+  // ---- Promotions (job-scale) ----
+  let up = 0;
+  let lateral = 0;
+  let down = 0;
+  let unknown = 0;
+  const deptPromo = new Map<string, { up: number; total: number }>();
+  for (const e of employees) {
+    const dept = clean(e.newDepartment) || clean(e.currentDepartment);
+    if (e.currentJs != null && e.newJs != null) {
+      let kind: "up" | "lateral" | "down";
+      if (e.newJs > e.currentJs) {
+        up += 1;
+        kind = "up";
+      } else if (e.newJs < e.currentJs) {
+        down += 1;
+        kind = "down";
+      } else {
+        lateral += 1;
+        kind = "lateral";
+      }
+      if (dept) {
+        const d = deptPromo.get(dept) ?? { up: 0, total: 0 };
+        d.total += 1;
+        if (kind === "up") d.up += 1;
+        deptPromo.set(dept, d);
+      }
+    } else {
+      unknown += 1;
+    }
+  }
+  const promoKnown = up + lateral + down;
+  const promotionRate = promoKnown > 0 ? Math.round((up / promoKnown) * 100) : 0;
+  const promotionsByDept = [...deptPromo.entries()]
+    .map(([department, v]) => ({ department, up: v.up, total: v.total }))
+    .sort((a, b) => b.up - a.up || b.total - a.total)
+    .slice(0, 6);
+
+  // ---- Trend over last 12 months (Transfer vs Assignment) ----
+  const months: { month: string; label: string; transfer: number; assignment: number }[] = [];
+  const monthIndex = new Map<string, number>();
+  const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = monthKey(d);
+    monthIndex.set(key, months.length);
+    months.push({ month: key, label: MONTH_ABBR[d.getUTCMonth()], transfer: 0, assignment: 0 });
+  }
+  for (const a of announcements) {
+    const idx = monthIndex.get(monthKey(new Date(a.announcementDate)));
+    if (idx === undefined) continue;
+    if (a.movementType === "Assignment") months[idx].assignment += 1;
+    else months[idx].transfer += 1;
+  }
+
+  // ---- Status funnel ----
+  const statusCount = new Map<string, number>();
+  for (const a of announcements) statusCount.set(a.status, (statusCount.get(a.status) ?? 0) + 1);
+  const statusFunnel = STATUS_ORDER.map((s) => ({
+    status: s,
+    label: STATUS_LABELS[s] ?? s,
+    count: statusCount.get(s) ?? 0,
+  }));
+
+  // ---- Leaderboards ----
+  const rank = (pick: (e: (typeof employees)[number]) => string, take = 7) => {
+    const m = new Map<string, number>();
+    for (const e of employees) {
+      const v = clean(pick(e));
+      if (v) m.set(v, (m.get(v) ?? 0) + 1);
+    }
+    return [...m.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, take);
+  };
+  const leaderboards = {
+    destinations: rank((e) => e.newLocation ?? ""),
+    origins: rank((e) => e.currentLocation ?? ""),
+    departments: rank((e) => e.newDepartment ?? e.currentDepartment ?? ""),
+  };
+
+  // ---- Activity heatmap (last 26 weeks, by announcement date) ----
+  const activityStart = new Date(now.getTime() - 181 * 24 * 60 * 60 * 1000);
+  const activity = new Map<string, number>();
+  for (const a of announcements) {
+    const d = new Date(a.announcementDate);
+    if (d >= activityStart && d <= now) activity.set(dayKey(d), (activity.get(dayKey(d)) ?? 0) + 1);
+  }
+  const activityDays = [...activity.entries()]
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // ---- Upcoming pipeline (next 30 days) ----
+  const upcoming = employees
+    .filter((e) => e.effectiveDate && e.effectiveDate >= now && e.effectiveDate <= in30Days)
+    .sort((a, b) => a.effectiveDate!.getTime() - b.effectiveDate!.getTime())
+    .slice(0, 12)
+    .map((e) => ({
+      employeeName: clean(e.title) ? `${clean(e.title)} ${e.employeeName}` : e.employeeName,
+      movementType: (e.announcement?.movementType ?? "Transfer") as MovementType,
+      date: e.effectiveDate,
+      from: clean(e.currentLocation) || clean(e.currentPosition) || "—",
+      to: clean(e.newLocation) || clean(e.newPosition) || "—",
+    }));
+
+  return {
+    generatedAt: now.toISOString(),
+    kpis: {
+      totalAnnouncements: announcements.length,
+      employeesMoved: employees.length,
+      promotionRate,
+      transfers: transfersCount,
+      assignments: assignmentsCount,
+      requiresReview: statusCount.get("RequiresReview") ?? 0,
+      readyToGenerate: statusCount.get("ReadyToGenerate") ?? 0,
+      finalizedThisMonth: announcements.filter(
+        (a) =>
+          (a.status === "Finalized" || a.status === "Published") &&
+          new Date(a.announcementDate) >= startOfMonth
+      ).length,
+      upcoming30: upcoming.length,
+    },
+    movementDistribution: [
+      { movementType: "Transfer", count: transfersCount },
+      { movementType: "Assignment", count: assignmentsCount },
+    ],
+    flows,
+    map: { nodes: mapNodes, arcs: mapArcs },
+    promotions: { up, lateral, down, unknown, promotionRate, byDepartment: promotionsByDept },
+    trend: months,
+    statusFunnel,
+    leaderboards,
+    activity: activityDays,
+    upcoming,
+  };
+}

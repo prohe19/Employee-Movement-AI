@@ -229,6 +229,72 @@ export interface DashboardSummary {
   recentExtractions: MovementForm[];
 }
 
+export interface FlowLink {
+  source: string;
+  target: string;
+  value: number;
+}
+export type FlowDimension = "company" | "location" | "department";
+
+export interface MapNode {
+  name: string;
+  lat: number;
+  lng: number;
+  inbound: number;
+  outbound: number;
+  total: number;
+}
+export interface MapArc {
+  from: string;
+  to: string;
+  fromLat: number;
+  fromLng: number;
+  toLat: number;
+  toLng: number;
+  value: number;
+}
+
+export interface DashboardAnalytics {
+  generatedAt: string;
+  kpis: {
+    totalAnnouncements: number;
+    employeesMoved: number;
+    promotionRate: number;
+    transfers: number;
+    assignments: number;
+    requiresReview: number;
+    readyToGenerate: number;
+    finalizedThisMonth: number;
+    upcoming30: number;
+  };
+  movementDistribution: { movementType: MovementType; count: number }[];
+  flows: Record<FlowDimension, FlowLink[]>;
+  map: { nodes: MapNode[]; arcs: MapArc[] };
+  promotions: {
+    up: number;
+    lateral: number;
+    down: number;
+    unknown: number;
+    promotionRate: number;
+    byDepartment: { department: string; up: number; total: number }[];
+  };
+  trend: { month: string; label: string; transfer: number; assignment: number }[];
+  statusFunnel: { status: string; label: string; count: number }[];
+  leaderboards: {
+    destinations: { name: string; count: number }[];
+    origins: { name: string; count: number }[];
+    departments: { name: string; count: number }[];
+  };
+  activity: { date: string; count: number }[];
+  upcoming: {
+    employeeName: string;
+    movementType: MovementType;
+    date: string | null;
+    from: string;
+    to: string;
+  }[];
+}
+
 export interface Paginated<T> {
   total: number;
   page: number;

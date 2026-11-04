@@ -35,6 +35,21 @@ Give it ~1 minute (first build pulls images + installs Chromium). Then open
 docker compose up -d
 ```
 
+## See the dashboard with demo data (optional)
+
+The dashboard (flows, site map, promotions, trends) only comes alive once there's
+movement data. To load a rich demo set (~45 sample announcements across 12 months):
+
+```bash
+docker compose exec app npm run seed:demo
+```
+
+Remove it again any time (your real data is untouched):
+
+```bash
+docker compose exec app npm run seed:demo -- --clear
+```
+
 ## Letting your team reach it
 
 | Who | How |

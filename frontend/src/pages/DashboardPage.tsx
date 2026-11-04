@@ -2,22 +2,64 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { StatusPill } from "../components/ui";
+import { PrismLogo } from "../components/PrismLogo";
 import { dashboardApi } from "../api/endpoints";
-import type { DashboardSummary } from "../api/types";
-import { formatUiDate, MOVEMENT_TYPE_LABELS } from "../lib/format";
+import type { DashboardAnalytics, DashboardSummary, FlowDimension } from "../api/types";
+import { MOVEMENT_TYPE_LABELS } from "../lib/format";
+import { FILL, GLOW, INK, Panel, fmt, useCountUp } from "../components/charts/common";
+import { MovementSankey } from "../components/charts/MovementSankey";
+import { OperationsMap } from "../components/charts/OperationsMap";
+import { PromotionPanel } from "../components/charts/PromotionPanel";
+import { TrendArea } from "../components/charts/TrendArea";
+import {
+  ActivityHeatmap,
+  Leaderboard,
+  MovementDonut,
+  StatusFunnel,
+  UpcomingPipeline,
+} from "../components/charts/widgets";
+
+const FLOW_DIMS: { key: FlowDimension; label: string }[] = [
+  { key: "company", label: "Company" },
+  { key: "location", label: "Location" },
+  { key: "department", label: "Department" },
+];
+
+const LB_TABS = [
+  { key: "destinations", label: "Destinations", accent: FILL.teal, glow: GLOW.teal },
+  { key: "origins", label: "Origins", accent: FILL.pink, glow: GLOW.pink },
+  { key: "departments", label: "Departments", accent: FILL.purple, glow: GLOW.purple },
+] as const;
 
 export function DashboardPage() {
-  const [data, setData] = useState<DashboardSummary | null>(null);
+  const [a, setA] = useState<DashboardAnalytics | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [flowDim, setFlowDim] = useState<FlowDimension>("company");
+  const [lbTab, setLbTab] = useState<(typeof LB_TABS)[number]["key"]>("destinations");
 
   useEffect(() => {
-    dashboardApi
-      .summary()
-      .then(setData)
-      .catch((e) => setError(e.message));
+    dashboardApi.analytics().then(setA).catch((e) => setError(e.message));
+    dashboardApi.summary().then(setSummary).catch(() => {});
   }, []);
 
-  const maxDist = Math.max(1, ...(data?.movementDistribution.map((d) => d.count) ?? [1]));
+  if (error)
+    return (
+      <AppShell eyebrow="// COMMAND CENTER" title="Dashboard">
+        <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>
+      </AppShell>
+    );
+
+  if (!a)
+    return (
+      <AppShell eyebrow="// COMMAND CENTER" title="Dashboard">
+        <div style={{ display: "flex", justifyContent: "center", padding: 80 }}>
+          <div className="cp-glow"><PrismLogo size={56} /></div>
+        </div>
+      </AppShell>
+    );
+
+  const empty = a.kpis.employeesMoved === 0;
 
   return (
     <AppShell
@@ -29,102 +71,171 @@ export function DashboardPage() {
         </Link>
       }
     >
-      {error && <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>}
+      {empty && (
+        <div className="alert" style={{ marginTop: 18, borderColor: "rgba(177,74,237,0.4)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+          The charts are hungry 🍽️ — there's no movement data yet. Load a rich demo set from the backend with&nbsp;
+          <code style={{ color: GLOW.teal }}>npm run seed:demo</code>&nbsp;(remove later with <code style={{ color: GLOW.pink }}>npm run seed:demo -- --clear</code>).
+        </div>
+      )}
 
-      {/* KPI cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 22 }}>
-        <KpiCard label="TOTAL ANNOUNCEMENTS" value={data?.kpis.totalAnnouncements} color="#ff5a8c" />
-        <KpiCard label="REQUIRES REVIEW" value={data?.kpis.requiresReview} color="#fbbf24" />
-        <KpiCard label="READY TO GENERATE" value={data?.kpis.readyToGenerate} color="#34d399" />
-        <KpiCard label="FINALIZED THIS MONTH" value={data?.kpis.finalizedThisMonth} color="#3fe0d0" />
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(165px, 1fr))", gap: 14, marginTop: 20 }}>
+        <Kpi label="Total Announcements" value={a.kpis.totalAnnouncements} color={GLOW.pink} />
+        <Kpi label="Employees Moved" value={a.kpis.employeesMoved} color={GLOW.teal} />
+        <Kpi label="Promotion Rate" value={a.kpis.promotionRate} suffix="%" color="#34d399" />
+        <Kpi label="Requires Review" value={a.kpis.requiresReview} color={GLOW.amber} />
+        <Kpi label="Next 30 Days" value={a.kpis.upcoming30} color={GLOW.purple} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16, alignItems: "start" }}>
-        {/* movement distribution */}
-        <div className="panel">
-          <div className="eyebrow">// MOVEMENT DISTRIBUTION</div>
-          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            {(data?.movementDistribution ?? []).length === 0 && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "rgba(255,150,190,0.5)" }}>No data yet.</div>
+      {/* HERO: operations map */}
+      <div style={{ marginTop: 16 }}>
+        <Panel title="Operations Map" subtitle="Site movement network — node size = volume, arcs = transfers">
+          <OperationsMap nodes={a.map.nodes} arcs={a.map.arcs} />
+        </Panel>
+      </div>
+
+      {/* HERO: flow + promotions */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16, alignItems: "stretch" }}>
+        <Panel
+          title="Movement Flow"
+          subtitle={`Origin → destination by ${flowDim}`}
+          right={
+            <div style={{ display: "flex", gap: 4 }}>
+              {FLOW_DIMS.map((d) => (
+                <button
+                  key={d.key}
+                  onClick={() => setFlowDim(d.key)}
+                  className="btn-ghost"
+                  style={{
+                    height: 26,
+                    padding: "0 9px",
+                    fontSize: 9.5,
+                    borderColor: flowDim === d.key ? FILL.pink : undefined,
+                    color: flowDim === d.key ? GLOW.pink : undefined,
+                  }}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          }
+        >
+          <MovementSankey links={a.flows[flowDim]} />
+        </Panel>
+
+        <Panel title="Promotions" subtitle="Job-scale movement — promotions vs lateral vs step-down">
+          <PromotionPanel data={a.promotions} />
+        </Panel>
+      </div>
+
+      {/* trend + donut */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
+        <Panel title="Movement Trend" subtitle="Last 12 months" style={{ gridColumn: "span 1" }}>
+          <TrendArea data={a.trend} />
+        </Panel>
+        <Panel title="Type Split" subtitle="Transfer vs Assignment">
+          <MovementDonut data={a.movementDistribution} />
+        </Panel>
+      </div>
+
+      {/* funnel + leaderboards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
+        <Panel title="Status Funnel" subtitle="Where announcements sit in the pipeline">
+          <StatusFunnel data={a.statusFunnel} />
+        </Panel>
+        <Panel
+          title="Leaderboards"
+          subtitle="Busiest by movement count"
+          right={
+            <div style={{ display: "flex", gap: 4 }}>
+              {LB_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setLbTab(t.key)}
+                  className="btn-ghost"
+                  style={{ height: 26, padding: "0 9px", fontSize: 9.5, borderColor: lbTab === t.key ? t.accent : undefined, color: lbTab === t.key ? t.glow : undefined }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          }
+        >
+          <Leaderboard
+            items={a.leaderboards[lbTab]}
+            accent={LB_TABS.find((t) => t.key === lbTab)!.accent}
+            glow={LB_TABS.find((t) => t.key === lbTab)!.glow}
+          />
+        </Panel>
+      </div>
+
+      {/* activity heatmap */}
+      <div style={{ marginTop: 16 }}>
+        <Panel title="Activity" subtitle="Announcements per day — last 26 weeks">
+          <ActivityHeatmap data={a.activity} />
+        </Panel>
+      </div>
+
+      {/* upcoming + recent */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
+        <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
+          <UpcomingPipeline data={a.upcoming} />
+        </Panel>
+        <Panel
+          title="Recent Announcements"
+          subtitle="Latest activity"
+          right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}
+        >
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {(summary?.recentAnnouncements ?? []).length === 0 && (
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: INK.faint }}>
+                No announcements yet — <Link to="/create">create your first</Link>.
+              </div>
             )}
-            {data?.movementDistribution.map((d) => (
-              <div key={d.movementType} style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                <span style={{ width: 150, color: "rgba(255,150,190,0.7)" }}>{MOVEMENT_TYPE_LABELS[d.movementType]}</span>
-                <span style={{ flex: 1, height: 8, background: "rgba(177,74,237,0.12)", position: "relative" }}>
-                  <span style={{ position: "absolute", inset: 0, width: `${(d.count / maxDist) * 100}%`, background: "linear-gradient(90deg,#ff2a6d,#b14aed)", boxShadow: "0 0 8px rgba(255,42,109,0.4)" }} />
-                </span>
-                <span style={{ color: "var(--text)", fontWeight: 700, width: 30, textAlign: "right" }}>{d.count}</span>
+            {summary?.recentAnnouncements.slice(0, 7).map((an) => (
+              <div
+                key={an.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.5fr 1.2fr auto",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "9px 0",
+                  borderBottom: "1px solid rgba(177,74,237,0.1)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: INK.text, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{an.number}</span>
+                <span style={{ color: INK.muted }}>{MOVEMENT_TYPE_LABELS[an.movementType]}</span>
+                <span style={{ justifySelf: "end" }}><StatusPill status={an.status} /></span>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* upcoming effective dates */}
-        <div className="panel">
-          <div className="eyebrow">// UPCOMING EFFECTIVE DATES</div>
-          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            {(data?.upcomingEffectiveDates ?? []).length === 0 && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "rgba(255,150,190,0.5)" }}>Nothing in the next 30 days.</div>
-            )}
-            {data?.upcomingEffectiveDates.map((e) => (
-              <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 11.5, borderBottom: "1px solid rgba(177,74,237,0.12)", paddingBottom: 8 }}>
-                <span style={{ color: "var(--text)" }}>{e.employeeName}</span>
-                <span style={{ color: "#ff5a8c" }}>{formatUiDate(e.effectiveDate)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* recent announcements */}
-      <div className="panel" style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="eyebrow">// RECENT ANNOUNCEMENTS</div>
-          <Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
-            VIEW ALL →
-          </Link>
-        </div>
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column" }}>
-          {(data?.recentAnnouncements ?? []).length === 0 && (
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "rgba(255,150,190,0.5)" }}>
-              No announcements yet — <Link to="/create">create your first</Link>.
-            </div>
-          )}
-          {data?.recentAnnouncements.map((a) => (
-            <div
-              key={a.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.4fr 1.3fr 1fr 1fr",
-                alignItems: "center",
-                padding: "12px 0",
-                borderBottom: "1px solid rgba(177,74,237,0.1)",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11.5,
-              }}
-            >
-              <span style={{ color: "var(--text)", fontWeight: 700 }}>{a.number}</span>
-              <span style={{ color: "rgba(255,150,190,0.7)" }}>{a.employees[0]?.employeeName ?? "—"}</span>
-              <span style={{ color: "rgba(255,150,190,0.6)" }}>{MOVEMENT_TYPE_LABELS[a.movementType]}</span>
-              <span style={{ justifySelf: "end" }}>
-                <StatusPill status={a.status} />
-              </span>
-            </div>
-          ))}
-        </div>
+        </Panel>
       </div>
     </AppShell>
   );
 }
 
-function KpiCard({ label, value, color }: { label: string; value?: number; color: string }) {
+function Kpi({ label, value, color, suffix }: { label: string; value: number; color: string; suffix?: string }) {
+  const v = useCountUp(value);
   return (
-    <div className="panel" style={{ borderColor: "rgba(255,42,109,0.2)" }}>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(177,74,237,0.9)" }}>
+    <div
+      style={{
+        background: "var(--panel)",
+        border: "1px solid rgba(255,42,109,0.2)",
+        padding: "14px 16px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color, boxShadow: `0 0 10px ${color}` }} />
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.08em", color: "rgba(177,74,237,0.9)", textTransform: "uppercase" }}>
         // {label}
       </div>
-      <div style={{ fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 34, color, marginTop: 10, textShadow: `0 0 16px ${color}55` }}>
-        {value ?? "—"}
+      <div style={{ fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 32, color, marginTop: 8, textShadow: `0 0 16px ${color}55`, lineHeight: 1 }}>
+        {fmt(v)}{suffix}
       </div>
     </div>
   );
