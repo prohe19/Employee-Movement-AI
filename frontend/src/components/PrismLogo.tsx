@@ -45,7 +45,7 @@ export function BrandLockup() {
             letterSpacing: "0.04em",
           }}
         >
-          ITM HR COMMUNICATION
+          ITM HUMAN RESOURCES
         </span>
         <span
           style={{
@@ -56,7 +56,7 @@ export function BrandLockup() {
             color: "rgba(177,74,237,0.85)",
           }}
         >
-          // EMPLOYEE MOVEMENT ANALYSIS
+          // ITM MOBILITY CENTER
         </span>
       </div>
     </div>
