@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PrismLogo } from "../../components/PrismLogo";
 import { InfoNote } from "../../components/ui";
 import { LetterPreview } from "../../components/LetterPreview";
+import { EmailImagePreview } from "../../components/EmailImagePreview";
 import { announcementsApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
 import type { Announcement, NarrationResult, ValidationReport } from "../../api/types";
@@ -22,6 +23,22 @@ export function PreviewStep({ state, onBack }: Props) {
   const [generating, setGenerating] = useState(false);
   const [generatingEmail, setGeneratingEmail] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailHtml, setEmailHtml] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Load the live body-email preview separately so a missing photo (or other
+  // email-only issue) surfaces inside the email panel instead of blocking the page.
+  const refreshEmailPreview = async () => {
+    if (!state.announcementId) return;
+    setEmailError(null);
+    try {
+      const { html } = await announcementsApi.emailPreview(state.announcementId);
+      setEmailHtml(html);
+    } catch (e) {
+      setEmailHtml(null);
+      setEmailError(e instanceof ApiError ? e.message : "Could not load email preview");
+    }
+  };
 
   const refresh = async () => {
     if (!state.announcementId) return;
@@ -41,6 +58,7 @@ export function PreviewStep({ state, onBack }: Props) {
     } finally {
       setLoading(false);
     }
+    void refreshEmailPreview();
   };
 
   useEffect(() => {
@@ -257,11 +275,15 @@ export function PreviewStep({ state, onBack }: Props) {
                 <span style={{ fontSize: 10.5, color: "rgba(255,150,190,0.45)" }}>PNG · 1280×720</span>
               </div>
               <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(177,74,237,0.2)", padding: 16, display: "flex", justifyContent: "center" }}>
-                {announcement?.emailImageUrl ? (
-                  <img src={announcement.emailImageUrl} alt="Announcement email" style={{ width: "100%", display: "block", boxShadow: "0 12px 30px -10px rgba(0,0,0,0.6)" }} />
+                {emailHtml ? (
+                  <EmailImagePreview html={emailHtml} />
+                ) : emailError ? (
+                  <div style={{ color: "rgba(255,150,190,0.75)", fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "center", padding: 30, lineHeight: 1.6 }}>
+                    {emailError}
+                  </div>
                 ) : (
                   <div style={{ color: "rgba(255,150,190,0.5)", fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "center", padding: 30 }}>
-                    Generate the email PNG to preview the ITM HR announcement graphic.
+                    Loading email preview…
                   </div>
                 )}
               </div>

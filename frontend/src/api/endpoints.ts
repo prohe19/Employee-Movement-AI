@@ -83,6 +83,8 @@ export const announcementsApi = {
     api.post<{ announcement: Announcement }>(`/announcements/${id}/generate-pdf`),
   generateEmail: (id: string) =>
     api.post<{ announcement: Announcement }>(`/announcements/${id}/generate-email`),
+  emailPreview: (id: string) =>
+    api.get<{ html: string }>(`/announcements/${id}/email-preview`),
   uploadPhoto: (file: File) => {
     const form = new FormData();
     form.append("file", file);
