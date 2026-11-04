@@ -126,12 +126,12 @@ async function main() {
     return;
   }
 
-  // Reuse the admin user as creator (create a minimal one if the DB is empty).
+  // Ensure the admin exists (as a fallback creator).
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@itmg.co.id";
-  let creator = await prisma.user.findFirst({ where: { email: adminEmail } });
-  if (!creator) creator = await prisma.user.findFirst();
-  if (!creator) {
-    creator = await prisma.user.create({
+  let admin = await prisma.user.findFirst({ where: { email: adminEmail } });
+  if (!admin) admin = await prisma.user.findFirst();
+  if (!admin) {
+    admin = await prisma.user.create({
       data: {
         fullName: "HR Communication Admin",
         username: "hr_admin",
@@ -140,6 +140,24 @@ async function main() {
         role: "admin",
       },
     });
+  }
+
+  // A handful of demo HR contributors so the "who entered the data" chart is populated.
+  const hash = await bcrypt.hash("DemoUser123!", 12);
+  const demoPeople = [
+    { fullName: "Razani Putra", username: "razani" },
+    { fullName: "Astagina Dewi", username: "astagina" },
+    { fullName: "Bimo Nugroho", username: "bimo" },
+    { fullName: "Nadia Salsabila", username: "nadia" },
+  ];
+  const creators = [admin];
+  for (const person of demoPeople) {
+    const u = await prisma.user.upsert({
+      where: { username: person.username },
+      update: {},
+      create: { fullName: person.fullName, username: person.username, email: `${person.username}@itmg.co.id`, passwordHash: hash, role: "hr_user" },
+    });
+    creators.push(u);
   }
   const signatory = await prisma.signatory.findFirst({ where: { isActive: true } });
 
@@ -221,7 +239,7 @@ async function main() {
         city: pick(["Jakarta", "Balikpapan", "Samarinda"]),
         movementType,
         status,
-        createdBy: creator.id,
+        createdBy: pick(creators).id,
         signatoryId: signatory?.id ?? null,
         notes: "[demo data]",
         employees: { create: employees },

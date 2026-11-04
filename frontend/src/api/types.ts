@@ -276,7 +276,7 @@ export interface DashboardAnalytics {
     down: number;
     unknown: number;
     promotionRate: number;
-    byDepartment: { department: string; up: number; total: number }[];
+    byDepartment: { department: string; up: number; down: number; total: number }[];
   };
   trend: { month: string; label: string; transfer: number; assignment: number }[];
   statusFunnel: { status: string; label: string; count: number }[];
@@ -285,6 +285,7 @@ export interface DashboardAnalytics {
     origins: { name: string; count: number }[];
     departments: { name: string; count: number }[];
   };
+  contributors: { name: string; transfers: number; assignments: number; total: number }[];
   activity: { date: string; count: number }[];
   upcoming: {
     employeeName: string;

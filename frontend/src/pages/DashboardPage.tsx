@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { StatusPill } from "../components/ui";
@@ -13,6 +13,7 @@ import { PromotionPanel } from "../components/charts/PromotionPanel";
 import { TrendArea } from "../components/charts/TrendArea";
 import {
   ActivityHeatmap,
+  Contributors,
   Leaderboard,
   MovementDonut,
   StatusFunnel,
@@ -31,17 +32,43 @@ const LB_TABS = [
   { key: "departments", label: "Departments", accent: FILL.purple, glow: GLOW.purple },
 ] as const;
 
+const RANGES = [
+  { key: "1m", label: "This month", days: 31 },
+  { key: "3m", label: "3 months", days: 93 },
+  { key: "6m", label: "6 months", days: 183 },
+  { key: "1y", label: "1 year", days: 365 },
+  { key: "all", label: "All time", days: 0 },
+] as const;
+
+const GRID_CSS = `
+.dash-grid { display: grid; gap: 16px; margin-top: 16px; }
+.dash-hero { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.dash-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dash-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1180px) { .dash-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .dash-hero, .dash-2, .dash-3 { grid-template-columns: minmax(0, 1fr); } }
+`;
+
 export function DashboardPage() {
   const [a, setA] = useState<DashboardAnalytics | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flowDim, setFlowDim] = useState<FlowDimension>("company");
   const [lbTab, setLbTab] = useState<(typeof LB_TABS)[number]["key"]>("destinations");
+  const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("6m");
 
   useEffect(() => {
     dashboardApi.analytics().then(setA).catch((e) => setError(e.message));
     dashboardApi.summary().then(setSummary).catch(() => {});
   }, []);
+
+  const activityDays = useMemo(() => {
+    const sel = RANGES.find((r) => r.key === range)!;
+    if (sel.days > 0) return sel.days;
+    if (!a || a.activity.length === 0) return 183;
+    const earliest = new Date(a.activity[0].date).getTime();
+    return Math.max(31, Math.ceil((Date.now() - earliest) / 86400000) + 7);
+  }, [range, a]);
 
   if (error)
     return (
@@ -71,9 +98,11 @@ export function DashboardPage() {
         </Link>
       }
     >
+      <style>{GRID_CSS}</style>
+
       {empty && (
         <div className="alert" style={{ marginTop: 18, borderColor: "rgba(177,74,237,0.4)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-          The charts are hungry 🍽️ — there's no movement data yet. Load a rich demo set from the backend with&nbsp;
+          The charts are hungry 🍽️ — there's no movement data yet. Load a rich demo set with&nbsp;
           <code style={{ color: GLOW.teal }}>npm run seed:demo</code>&nbsp;(remove later with <code style={{ color: GLOW.pink }}>npm run seed:demo -- --clear</code>).
         </div>
       )}
@@ -87,33 +116,25 @@ export function DashboardPage() {
         <Kpi label="Next 30 Days" value={a.kpis.upcoming30} color={GLOW.purple} />
       </div>
 
-      {/* HERO: operations map */}
-      <div style={{ marginTop: 16 }}>
+      {/* hero: map + promotions */}
+      <div className="dash-grid dash-hero">
         <Panel title="Operations Map" subtitle="Site movement network — node size = volume, arcs = transfers">
           <OperationsMap nodes={a.map.nodes} arcs={a.map.arcs} />
         </Panel>
+        <Panel title="Promotions" subtitle="Job-scale movement">
+          <PromotionPanel data={a.promotions} />
+        </Panel>
       </div>
 
-      {/* HERO: flow + promotions */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16, alignItems: "stretch" }}>
+      {/* flow + contributors */}
+      <div className="dash-grid dash-2">
         <Panel
           title="Movement Flow"
           subtitle={`Origin → destination by ${flowDim}`}
           right={
             <div style={{ display: "flex", gap: 4 }}>
               {FLOW_DIMS.map((d) => (
-                <button
-                  key={d.key}
-                  onClick={() => setFlowDim(d.key)}
-                  className="btn-ghost"
-                  style={{
-                    height: 26,
-                    padding: "0 9px",
-                    fontSize: 9.5,
-                    borderColor: flowDim === d.key ? FILL.pink : undefined,
-                    color: flowDim === d.key ? GLOW.pink : undefined,
-                  }}
-                >
+                <button key={d.key} onClick={() => setFlowDim(d.key)} className="btn-ghost" style={{ height: 26, padding: "0 9px", fontSize: 9.5, borderColor: flowDim === d.key ? FILL.pink : undefined, color: flowDim === d.key ? GLOW.pink : undefined }}>
                   {d.label}
                 </button>
               ))}
@@ -122,70 +143,45 @@ export function DashboardPage() {
         >
           <MovementSankey links={a.flows[flowDim]} />
         </Panel>
-
-        <Panel title="Promotions" subtitle="Job-scale movement — promotions vs lateral vs step-down">
-          <PromotionPanel data={a.promotions} />
+        <Panel title="Contributors" subtitle="Who entered the data — by movement type">
+          <Contributors data={a.contributors} />
         </Panel>
       </div>
 
-      {/* trend + donut */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
-        <Panel title="Movement Trend" subtitle="Last 12 months" style={{ gridColumn: "span 1" }}>
+      {/* trend + type split + status funnel */}
+      <div className="dash-grid dash-3">
+        <Panel title="Movement Trend" subtitle="Last 12 months">
           <TrendArea data={a.trend} />
         </Panel>
         <Panel title="Type Split" subtitle="Transfer vs Assignment">
           <MovementDonut data={a.movementDistribution} />
         </Panel>
-      </div>
-
-      {/* funnel + leaderboards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
-        <Panel title="Status Funnel" subtitle="Where announcements sit in the pipeline">
+        <Panel title="Status Funnel" subtitle="Pipeline">
           <StatusFunnel data={a.statusFunnel} />
         </Panel>
+      </div>
+
+      {/* leaderboards + upcoming + recent */}
+      <div className="dash-grid dash-3">
         <Panel
           title="Leaderboards"
           subtitle="Busiest by movement count"
           right={
             <div style={{ display: "flex", gap: 4 }}>
               {LB_TABS.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setLbTab(t.key)}
-                  className="btn-ghost"
-                  style={{ height: 26, padding: "0 9px", fontSize: 9.5, borderColor: lbTab === t.key ? t.accent : undefined, color: lbTab === t.key ? t.glow : undefined }}
-                >
+                <button key={t.key} onClick={() => setLbTab(t.key)} className="btn-ghost" style={{ height: 26, padding: "0 9px", fontSize: 9.5, borderColor: lbTab === t.key ? t.accent : undefined, color: lbTab === t.key ? t.glow : undefined }}>
                   {t.label}
                 </button>
               ))}
             </div>
           }
         >
-          <Leaderboard
-            items={a.leaderboards[lbTab]}
-            accent={LB_TABS.find((t) => t.key === lbTab)!.accent}
-            glow={LB_TABS.find((t) => t.key === lbTab)!.glow}
-          />
+          <Leaderboard items={a.leaderboards[lbTab]} accent={LB_TABS.find((t) => t.key === lbTab)!.accent} glow={LB_TABS.find((t) => t.key === lbTab)!.glow} />
         </Panel>
-      </div>
-
-      {/* activity heatmap */}
-      <div style={{ marginTop: 16 }}>
-        <Panel title="Activity" subtitle="Announcements per day — last 26 weeks">
-          <ActivityHeatmap data={a.activity} />
-        </Panel>
-      </div>
-
-      {/* upcoming + recent */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
         <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
           <UpcomingPipeline data={a.upcoming} />
         </Panel>
-        <Panel
-          title="Recent Announcements"
-          subtitle="Latest activity"
-          right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}
-        >
+        <Panel title="Recent Announcements" subtitle="Latest activity" right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {(summary?.recentAnnouncements ?? []).length === 0 && (
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: INK.faint }}>
@@ -193,25 +189,45 @@ export function DashboardPage() {
               </div>
             )}
             {summary?.recentAnnouncements.slice(0, 7).map((an) => (
-              <div
-                key={an.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.5fr 1.2fr auto",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "9px 0",
-                  borderBottom: "1px solid rgba(177,74,237,0.1)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                }}
-              >
+              <div key={an.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr auto", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid rgba(177,74,237,0.1)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
                 <span style={{ color: INK.text, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{an.number}</span>
                 <span style={{ color: INK.muted }}>{MOVEMENT_TYPE_LABELS[an.movementType]}</span>
                 <span style={{ justifySelf: "end" }}><StatusPill status={an.status} /></span>
               </div>
             ))}
           </div>
+        </Panel>
+      </div>
+
+      {/* activity (full width) with range dropdown */}
+      <div className="dash-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
+        <Panel
+          title="Activity"
+          subtitle="Announcements per day"
+          right={
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value as (typeof RANGES)[number]["key"])}
+              style={{
+                background: "rgba(10,4,16,0.9)",
+                color: INK.text,
+                border: "1px solid rgba(177,74,237,0.5)",
+                borderRadius: 3,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10.5,
+                padding: "5px 8px",
+                cursor: "pointer",
+              }}
+            >
+              {RANGES.map((r) => (
+                <option key={r.key} value={r.key} style={{ background: "#0a0410" }}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          }
+        >
+          <ActivityHeatmap data={a.activity} days={activityDays} />
         </Panel>
       </div>
     </AppShell>
@@ -221,15 +237,7 @@ export function DashboardPage() {
 function Kpi({ label, value, color, suffix }: { label: string; value: number; color: string; suffix?: string }) {
   const v = useCountUp(value);
   return (
-    <div
-      style={{
-        background: "var(--panel)",
-        border: "1px solid rgba(255,42,109,0.2)",
-        padding: "14px 16px",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{ background: "var(--panel)", border: "1px solid rgba(255,42,109,0.2)", padding: "14px 16px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: color, boxShadow: `0 0 10px ${color}` }} />
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.08em", color: "rgba(177,74,237,0.9)", textTransform: "uppercase" }}>
         // {label}
