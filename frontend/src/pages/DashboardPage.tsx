@@ -7,7 +7,7 @@ import type { DashboardAnalytics, FlowDimension } from "../api/types";
 import { FILL, GLOW, INK, Panel, fmt, useCountUp } from "../components/charts/common";
 import { MovementSankey } from "../components/charts/MovementSankey";
 import { OperationsMap } from "../components/charts/OperationsMap";
-import { PromotionPanel } from "../components/charts/PromotionPanel";
+import { MovementRatePanel } from "../components/charts/MovementRatePanel";
 import { TrendArea } from "../components/charts/TrendArea";
 import {
   ActivityHeatmap,
@@ -137,7 +137,7 @@ export function DashboardPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(165px, 1fr))", gap: 14, marginTop: 20 }}>
         <Kpi label="Total Announcements" value={a.kpis.totalAnnouncements} color={GLOW.pink} />
         <Kpi label="Employees Moved" value={a.kpis.employeesMoved} color={GLOW.teal} />
-        <Kpi label="Promotion Rate" value={a.kpis.promotionRate} suffix="%" color="#34d399" />
+        <Kpi label="Transfer Rate" value={a.kpis.transferRate} suffix="%" color="#34d399" />
         <Kpi label="Requires Review" value={a.kpis.requiresReview} color={GLOW.amber} />
         <Kpi label="Next 30 Days" value={a.kpis.upcoming30} color={GLOW.purple} />
       </div>
@@ -149,14 +149,14 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* activity + promotions (left stack) | movement flow (tall) */}
+      {/* activity + transfer/assignment rate (left stack) | movement flow (tall) */}
       <div className="dash-grid dash-r2">
         <div className="r2-left">
           <Panel title="Activity" subtitle="Announcements per day" right={rangeSelect}>
             <ActivityHeatmap data={a.activity} days={activityDays} />
           </Panel>
-          <Panel title="Promotions / Assignment" subtitle="Job-scale movement">
-            <PromotionPanel data={a.promotions} />
+          <Panel title="Transfer / Assignment" subtitle="Movement-type rate & by department">
+            <MovementRatePanel data={a.movementRates} />
           </Panel>
         </div>
         <Panel

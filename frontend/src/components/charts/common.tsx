@@ -32,14 +32,6 @@ export const MOVEMENT_GLOW = {
   Assignment: GLOW.teal,
 } as const;
 
-// Promotion outcomes are STATUS colors (good/neutral/bad) — always shown with labels.
-export const PROMO = {
-  up: { fill: "#2fb98b", glow: "#34d399", label: "Promotion", icon: "▲" },
-  lateral: { fill: "#7c86b8", glow: "#9aa6e6", label: "Lateral", icon: "▬" },
-  down: { fill: "#d6456b", glow: "#ff6a8a", label: "Step down", icon: "▼" },
-  unknown: { fill: "#4a4458", glow: "#6a6480", label: "Not specified", icon: "·" },
-} as const;
-
 export const INK = {
   text: "#ffd6e7",
   muted: "rgba(255,150,190,0.55)",
