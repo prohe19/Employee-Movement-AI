@@ -244,6 +244,14 @@ export interface MapNode {
   outbound: number;
   total: number;
 }
+export interface ArcMovement {
+  name: string;
+  type: string;
+  fromPosition: string;
+  toPosition: string;
+  fromSite: string;
+  toSite: string;
+}
 export interface MapArc {
   from: string;
   to: string;
@@ -252,6 +260,7 @@ export interface MapArc {
   toLat: number;
   toLng: number;
   value: number;
+  movements: ArcMovement[];
 }
 
 export interface DashboardAnalytics {
