@@ -39,7 +39,13 @@ const RANGES = [
   { key: "all", label: "All time", days: 0 },
 ] as const;
 
-const GRID_CSS = `
+const DASH_CSS = `
+.hero { position: relative; display: flex; align-items: center; justify-content: center; margin: 26px 0 2px; min-height: 58px; }
+.hero-title { margin: 0; font-family: var(--font-head); font-weight: 700; font-size: clamp(30px, 4.6vw, 54px); letter-spacing: 0.06em; text-align: center;
+  background: linear-gradient(90deg, #ff5a8c, #c98bff, #3fe0d0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 0 16px rgba(255,90,140,0.35)); }
+.hero-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+@media (max-width: 760px) { .hero { flex-direction: column; } .hero-btn { position: static; transform: none; margin-top: 14px; } }
 .dash-grid { display: grid; gap: 16px; margin-top: 16px; }
 .dash-full { grid-template-columns: minmax(0, 1fr); }
 .dash-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -64,8 +70,6 @@ export function DashboardPage() {
       dashboardApi.summary().then((d) => active && setSummary(d)).catch(() => {});
     };
     load();
-    // Refetch when the user returns to the dashboard, so the charts reflect the
-    // live database without a hard reload.
     const onFocus = () => {
       if (document.visibilityState !== "hidden") load();
     };
@@ -88,14 +92,14 @@ export function DashboardPage() {
 
   if (error)
     return (
-      <AppShell eyebrow="// COMMAND CENTER" title="Dashboard">
+      <AppShell>
         <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>
       </AppShell>
     );
 
   if (!a)
     return (
-      <AppShell eyebrow="// COMMAND CENTER" title="Dashboard">
+      <AppShell>
         <div style={{ display: "flex", justifyContent: "center", padding: 80 }}>
           <div className="cp-glow"><PrismLogo size={56} /></div>
         </div>
@@ -116,19 +120,18 @@ export function DashboardPage() {
   );
 
   return (
-    <AppShell
-      eyebrow="// COMMAND CENTER"
-      title="Dashboard"
-      actions={
-        <Link to="/create" className="btn" style={{ textDecoration: "none" }}>
+    <AppShell>
+      <style>{DASH_CSS}</style>
+
+      <div className="hero">
+        <h1 className="hero-title">ITM MOBILITY CENTER</h1>
+        <Link to="/create" className="btn hero-btn" style={{ textDecoration: "none" }}>
           + NEW MOVEMENT
         </Link>
-      }
-    >
-      <style>{GRID_CSS}</style>
+      </div>
 
       {empty && (
-        <div className="alert" style={{ marginTop: 18, borderColor: "rgba(177,74,237,0.4)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+        <div className="alert" style={{ marginTop: 14, borderColor: "rgba(177,74,237,0.4)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
           The charts are hungry 🍽️ — there's no movement data yet. Load a rich demo set with&nbsp;
           <code style={{ color: GLOW.teal }}>npm run seed:demo</code>&nbsp;(remove later with <code style={{ color: GLOW.pink }}>npm run seed:demo -- --clear</code>).
         </div>
@@ -141,21 +144,20 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* activity + type split (left stack) | movement flow (tall) */}
+      {/* movement activity + transfer vs assignment (left) | movement flow (tall) */}
       <div className="dash-grid dash-r2">
         <div className="r2-left">
-          <Panel title="Activity" subtitle="Announcements per day" right={rangeSelect}>
+          <Panel title="Movement Activity" right={rangeSelect}>
             <ActivityHeatmap data={a.activity} days={activityDays} />
           </Panel>
-          <Panel title="Type Split" subtitle="Transfer vs Assignment" style={{ flex: 1 }}>
+          <Panel title="Transfer vs Assignment" style={{ flex: 1 }}>
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <MovementDonut data={a.movementDistribution} />
+              <MovementDonut data={a.movementDistribution} size={250} />
             </div>
           </Panel>
         </div>
         <Panel
           title="Movement Flow"
-          subtitle={`Origin → destination by ${flowDim}`}
           right={
             <div style={{ display: "flex", gap: 4 }}>
               {FLOW_DIMS.map((d) => (
@@ -170,14 +172,13 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* trend + leaderboards + status funnel */}
+      {/* movement trend + leaderboards + announcement status */}
       <div className="dash-grid dash-3">
-        <Panel title="Movement Trend" subtitle="Last 12 months">
+        <Panel title="Movement Trend">
           <TrendArea data={a.trend} />
         </Panel>
         <Panel
           title="Leaderboards"
-          subtitle="Busiest by movement count"
           right={
             <div style={{ display: "flex", gap: 4 }}>
               {LB_TABS.map((t) => (
@@ -190,14 +191,14 @@ export function DashboardPage() {
         >
           <Leaderboard items={a.leaderboards[lbTab]} accent={LB_TABS.find((t) => t.key === lbTab)!.accent} glow={LB_TABS.find((t) => t.key === lbTab)!.glow} />
         </Panel>
-        <Panel title="Status Funnel" subtitle="Pipeline">
+        <Panel title="Announcement Status">
           <StatusFunnel data={a.statusFunnel} />
         </Panel>
       </div>
 
-      {/* contributors + recent announcements + upcoming */}
+      {/* contributors + recent announcements + upcoming announcements */}
       <div className="dash-grid dash-3">
-        <Panel title="Contributors" subtitle="Who entered the data — by movement type">
+        <Panel title="Contributors">
           <Contributors data={a.contributors} />
         </Panel>
         <Panel title="Recent Announcements" subtitle="Latest activity" right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}>
@@ -216,7 +217,7 @@ export function DashboardPage() {
             ))}
           </div>
         </Panel>
-        <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
+        <Panel title="Upcoming Announcements" subtitle="Effective in the next 30 days">
           <UpcomingPipeline data={a.upcoming} />
         </Panel>
       </div>

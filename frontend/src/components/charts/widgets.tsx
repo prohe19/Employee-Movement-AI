@@ -4,34 +4,36 @@ import { FILL, GLOW, INK, LegendChip, MOVEMENT_COLOR, MOVEMENT_GLOW, Tip, fmt, u
 
 /* ------------------------- Movement donut ------------------------- */
 
-export function MovementDonut({ data }: { data: { movementType: MovementType; count: number }[] }) {
+export function MovementDonut({ data, size = 150 }: { data: { movementType: MovementType; count: number }[]; size?: number }) {
   const total = data.reduce((s, d) => s + d.count, 0);
-  const R = 58;
-  const stroke = 20;
+  const c = size / 2;
+  const R = size * 0.387;
+  const stroke = Math.max(14, size * 0.14);
   const C = 2 * Math.PI * R;
   let offset = 0;
   const gap = 0.02 * C; // 2px-ish surface gap between segments
+  const big = size >= 200;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-      <div style={{ position: "relative", width: 150, height: 150, flex: "0 0 auto" }}>
-        <svg width={150} height={150} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={75} cy={75} r={R} fill="none" stroke="rgba(177,74,237,0.12)" strokeWidth={stroke} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: big ? 36 : 20, flexWrap: "wrap" }}>
+      <div style={{ position: "relative", width: size, height: size, flex: "0 0 auto" }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={c} cy={c} r={R} fill="none" stroke="rgba(177,74,237,0.12)" strokeWidth={stroke} />
           {total > 0 &&
             data.map((d) => {
               const len = (d.count / total) * C;
               const seg = (
                 <circle
                   key={d.movementType}
-                  cx={75}
-                  cy={75}
+                  cx={c}
+                  cy={c}
                   r={R}
                   fill="none"
                   stroke={MOVEMENT_COLOR[d.movementType]}
                   strokeWidth={stroke}
                   strokeDasharray={`${Math.max(0, len - gap)} ${C - Math.max(0, len - gap)}`}
                   strokeDashoffset={-offset}
-                  style={{ filter: `drop-shadow(0 0 5px ${MOVEMENT_GLOW[d.movementType]})`, transition: "stroke-dasharray 700ms" }}
+                  style={{ filter: `drop-shadow(0 0 ${big ? 8 : 5}px ${MOVEMENT_GLOW[d.movementType]})`, transition: "stroke-dasharray 700ms" }}
                 />
               );
               offset += len;
@@ -39,15 +41,15 @@ export function MovementDonut({ data }: { data: { movementType: MovementType; co
             })}
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ fontFamily: "var(--font-head)", fontSize: 30, fontWeight: 700, color: INK.text, lineHeight: 1 }}>{fmt(total)}</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: INK.muted }}>ANNOUNCEMENTS</div>
+          <div style={{ fontFamily: "var(--font-head)", fontSize: size * 0.22, fontWeight: 700, color: INK.text, lineHeight: 1 }}>{fmt(total)}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: Math.max(8, size * 0.058), color: INK.muted, marginTop: 2 }}>ANNOUNCEMENTS</div>
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: big ? 16 : 10 }}>
         {data.map((d) => (
-          <div key={d.movementType} style={{ display: "flex", alignItems: "center", gap: 9, fontFamily: "var(--font-mono)", fontSize: 12 }}>
-            <span style={{ width: 11, height: 11, borderRadius: 2, background: MOVEMENT_COLOR[d.movementType], boxShadow: `0 0 7px ${MOVEMENT_GLOW[d.movementType]}` }} />
-            <span style={{ color: INK.text, width: 92 }}>{d.movementType}</span>
+          <div key={d.movementType} style={{ display: "flex", alignItems: "center", gap: big ? 12 : 9, fontFamily: "var(--font-mono)", fontSize: big ? 15 : 12 }}>
+            <span style={{ width: big ? 14 : 11, height: big ? 14 : 11, borderRadius: 2, background: MOVEMENT_COLOR[d.movementType], boxShadow: `0 0 7px ${MOVEMENT_GLOW[d.movementType]}` }} />
+            <span style={{ color: INK.text, width: big ? 112 : 92 }}>{d.movementType}</span>
             <span style={{ color: INK.text, fontWeight: 700 }}>{d.count}</span>
             <span style={{ color: INK.muted }}>({total > 0 ? Math.round((d.count / total) * 100) : 0}%)</span>
           </div>
