@@ -2,9 +2,17 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/errorHandler";
 import { requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { getDashboardAnalytics } from "../services/dashboardAnalyticsService";
 
 const router = Router();
 router.use(requireAuth);
+
+router.get(
+  "/analytics",
+  asyncHandler(async (_req, res) => {
+    res.json(await getDashboardAnalytics());
+  })
+);
 
 router.get(
   "/summary",

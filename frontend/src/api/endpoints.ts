@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type {
   Announcement,
+  DashboardAnalytics,
   DashboardSummary,
   ExtractionResult,
   MovementForm,
@@ -124,4 +125,5 @@ export const settingsApi = {
 
 export const dashboardApi = {
   summary: () => api.get<DashboardSummary>("/dashboard/summary"),
+  analytics: () => api.get<DashboardAnalytics>("/dashboard/analytics"),
 };
