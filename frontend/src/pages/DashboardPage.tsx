@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
-import { StatusPill } from "../components/ui";
 import { PrismLogo } from "../components/PrismLogo";
 import { dashboardApi } from "../api/endpoints";
-import type { DashboardAnalytics, DashboardSummary, FlowDimension } from "../api/types";
-import { MOVEMENT_TYPE_LABELS } from "../lib/format";
+import type { DashboardAnalytics, FlowDimension } from "../api/types";
 import { FILL, GLOW, INK, Panel, fmt, useCountUp } from "../components/charts/common";
 import { MovementSankey } from "../components/charts/MovementSankey";
 import { OperationsMap } from "../components/charts/OperationsMap";
@@ -42,16 +40,16 @@ const RANGES = [
 
 const GRID_CSS = `
 .dash-grid { display: grid; gap: 16px; margin-top: 16px; }
-.dash-hero { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
-.dash-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dash-full { grid-template-columns: minmax(0, 1fr); }
 .dash-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dash-r2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: stretch; }
+.dash-r2 .r2-left { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 @media (max-width: 1180px) { .dash-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 860px) { .dash-hero, .dash-2, .dash-3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) { .dash-3, .dash-r2 { grid-template-columns: minmax(0, 1fr); } }
 `;
 
 export function DashboardPage() {
   const [a, setA] = useState<DashboardAnalytics | null>(null);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flowDim, setFlowDim] = useState<FlowDimension>("company");
   const [lbTab, setLbTab] = useState<(typeof LB_TABS)[number]["key"]>("destinations");
@@ -59,7 +57,6 @@ export function DashboardPage() {
 
   useEffect(() => {
     dashboardApi.analytics().then(setA).catch((e) => setError(e.message));
-    dashboardApi.summary().then(setSummary).catch(() => {});
   }, []);
 
   const activityDays = useMemo(() => {
@@ -87,6 +84,17 @@ export function DashboardPage() {
     );
 
   const empty = a.kpis.employeesMoved === 0;
+  const rangeSelect = (
+    <select
+      value={range}
+      onChange={(e) => setRange(e.target.value as (typeof RANGES)[number]["key"])}
+      style={{ background: "rgba(10,4,16,0.9)", color: INK.text, border: "1px solid rgba(177,74,237,0.5)", borderRadius: 3, fontFamily: "var(--font-mono)", fontSize: 10.5, padding: "5px 8px", cursor: "pointer" }}
+    >
+      {RANGES.map((r) => (
+        <option key={r.key} value={r.key} style={{ background: "#0a0410" }}>{r.label}</option>
+      ))}
+    </select>
+  );
 
   return (
     <AppShell
@@ -116,18 +124,23 @@ export function DashboardPage() {
         <Kpi label="Next 30 Days" value={a.kpis.upcoming30} color={GLOW.purple} />
       </div>
 
-      {/* hero: map + promotions */}
-      <div className="dash-grid dash-hero">
+      {/* operations map (full width) */}
+      <div className="dash-grid dash-full">
         <Panel title="Operations Map" subtitle="Site movement network — node size = volume, arcs = transfers">
           <OperationsMap nodes={a.map.nodes} arcs={a.map.arcs} />
         </Panel>
-        <Panel title="Promotions" subtitle="Job-scale movement">
-          <PromotionPanel data={a.promotions} />
-        </Panel>
       </div>
 
-      {/* flow + contributors */}
-      <div className="dash-grid dash-2">
+      {/* activity + promotions (left stack) | movement flow (tall) */}
+      <div className="dash-grid dash-r2">
+        <div className="r2-left">
+          <Panel title="Activity" subtitle="Announcements per day" right={rangeSelect}>
+            <ActivityHeatmap data={a.activity} days={activityDays} />
+          </Panel>
+          <Panel title="Promotions / Assignment" subtitle="Job-scale movement">
+            <PromotionPanel data={a.promotions} />
+          </Panel>
+        </div>
         <Panel
           title="Movement Flow"
           subtitle={`Origin → destination by ${flowDim}`}
@@ -141,14 +154,11 @@ export function DashboardPage() {
             </div>
           }
         >
-          <MovementSankey links={a.flows[flowDim]} />
-        </Panel>
-        <Panel title="Contributors" subtitle="Who entered the data — by movement type">
-          <Contributors data={a.contributors} />
+          <MovementSankey links={a.flows[flowDim]} height={560} />
         </Panel>
       </div>
 
-      {/* trend + type split + status funnel */}
+      {/* trend + type split + leaderboards */}
       <div className="dash-grid dash-3">
         <Panel title="Movement Trend" subtitle="Last 12 months">
           <TrendArea data={a.trend} />
@@ -156,13 +166,6 @@ export function DashboardPage() {
         <Panel title="Type Split" subtitle="Transfer vs Assignment">
           <MovementDonut data={a.movementDistribution} />
         </Panel>
-        <Panel title="Status Funnel" subtitle="Pipeline">
-          <StatusFunnel data={a.statusFunnel} />
-        </Panel>
-      </div>
-
-      {/* leaderboards + upcoming + recent */}
-      <div className="dash-grid dash-3">
         <Panel
           title="Leaderboards"
           subtitle="Busiest by movement count"
@@ -178,56 +181,18 @@ export function DashboardPage() {
         >
           <Leaderboard items={a.leaderboards[lbTab]} accent={LB_TABS.find((t) => t.key === lbTab)!.accent} glow={LB_TABS.find((t) => t.key === lbTab)!.glow} />
         </Panel>
-        <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
-          <UpcomingPipeline data={a.upcoming} />
-        </Panel>
-        <Panel title="Recent Announcements" subtitle="Latest activity" right={<Link to="/records" style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>VIEW ALL →</Link>}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {(summary?.recentAnnouncements ?? []).length === 0 && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: INK.faint }}>
-                No announcements yet — <Link to="/create">create your first</Link>.
-              </div>
-            )}
-            {summary?.recentAnnouncements.slice(0, 7).map((an) => (
-              <div key={an.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr auto", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid rgba(177,74,237,0.1)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
-                <span style={{ color: INK.text, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{an.number}</span>
-                <span style={{ color: INK.muted }}>{MOVEMENT_TYPE_LABELS[an.movementType]}</span>
-                <span style={{ justifySelf: "end" }}><StatusPill status={an.status} /></span>
-              </div>
-            ))}
-          </div>
-        </Panel>
       </div>
 
-      {/* activity (full width) with range dropdown */}
-      <div className="dash-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
-        <Panel
-          title="Activity"
-          subtitle="Announcements per day"
-          right={
-            <select
-              value={range}
-              onChange={(e) => setRange(e.target.value as (typeof RANGES)[number]["key"])}
-              style={{
-                background: "rgba(10,4,16,0.9)",
-                color: INK.text,
-                border: "1px solid rgba(177,74,237,0.5)",
-                borderRadius: 3,
-                fontFamily: "var(--font-mono)",
-                fontSize: 10.5,
-                padding: "5px 8px",
-                cursor: "pointer",
-              }}
-            >
-              {RANGES.map((r) => (
-                <option key={r.key} value={r.key} style={{ background: "#0a0410" }}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          }
-        >
-          <ActivityHeatmap data={a.activity} days={activityDays} />
+      {/* contributors + status funnel + upcoming */}
+      <div className="dash-grid dash-3">
+        <Panel title="Contributors" subtitle="Who entered the data — by movement type">
+          <Contributors data={a.contributors} />
+        </Panel>
+        <Panel title="Status Funnel" subtitle="Pipeline">
+          <StatusFunnel data={a.statusFunnel} />
+        </Panel>
+        <Panel title="Upcoming Pipeline" subtitle="Effective in the next 30 days">
+          <UpcomingPipeline data={a.upcoming} />
         </Panel>
       </div>
     </AppShell>
