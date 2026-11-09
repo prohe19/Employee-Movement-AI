@@ -6,12 +6,23 @@ import { LetterPreview } from "../../components/LetterPreview";
 import { EmailImagePreview } from "../../components/EmailImagePreview";
 import { announcementsApi } from "../../api/endpoints";
 import { ApiError } from "../../api/client";
+import { downloadFile, safeFileName } from "../../lib/download";
 import type { Announcement, NarrationResult, ValidationReport } from "../../api/types";
 import { WizardState } from "./wizardTypes";
 
 interface Props {
   state: WizardState;
   onBack: () => void;
+}
+
+/** "Announcement - <Name>" from the announcement's first (primary) employee. */
+function pdfFileName(a: Announcement): string {
+  return `Announcement - ${safeFileName(a.employees[0]?.employeeName, "Announcement")}.pdf`;
+}
+
+/** "Body Email - <Name>" from the announcement's first (primary) employee. */
+function emailFileName(a: Announcement): string {
+  return `Body Email - ${safeFileName(a.employees[0]?.employeeName, "Announcement")}.png`;
 }
 
 export function PreviewStep({ state, onBack }: Props) {
@@ -73,7 +84,7 @@ export function PreviewStep({ state, onBack }: Props) {
     try {
       const { announcement } = await announcementsApi.generatePdf(state.announcementId);
       setAnnouncement(announcement);
-      if (announcement.pdfUrl) window.open(announcement.pdfUrl, "_blank");
+      if (announcement.pdfUrl) await downloadFile(announcement.pdfUrl, pdfFileName(announcement));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "PDF generation failed");
     } finally {
@@ -88,7 +99,7 @@ export function PreviewStep({ state, onBack }: Props) {
     try {
       const { announcement } = await announcementsApi.generateEmail(state.announcementId);
       setAnnouncement(announcement);
-      if (announcement.emailImageUrl) window.open(announcement.emailImageUrl, "_blank");
+      if (announcement.emailImageUrl) await downloadFile(announcement.emailImageUrl, emailFileName(announcement));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Email image generation failed");
     } finally {
@@ -263,9 +274,13 @@ export function PreviewStep({ state, onBack }: Props) {
             )}
           </div>
           {announcement?.pdfUrl && (
-            <a href={announcement.pdfUrl} target="_blank" rel="noreferrer" className="btn-ghost" style={{ textAlign: "center" }}>
-              ↓ OPEN GENERATED PDF
-            </a>
+            <button
+              className="btn-ghost"
+              style={{ textAlign: "center" }}
+              onClick={() => announcement.pdfUrl && downloadFile(announcement.pdfUrl, pdfFileName(announcement))}
+            >
+              ↓ DOWNLOAD PDF
+            </button>
           )}
 
           {emailSupported && (
@@ -288,9 +303,13 @@ export function PreviewStep({ state, onBack }: Props) {
                 )}
               </div>
               {announcement?.emailImageUrl && (
-                <a href={announcement.emailImageUrl} target="_blank" rel="noreferrer" className="btn-ghost" style={{ textAlign: "center" }}>
-                  ↓ OPEN EMAIL PNG
-                </a>
+                <button
+                  className="btn-ghost"
+                  style={{ textAlign: "center" }}
+                  onClick={() => announcement.emailImageUrl && downloadFile(announcement.emailImageUrl, emailFileName(announcement))}
+                >
+                  ↓ DOWNLOAD EMAIL PNG
+                </button>
               )}
             </>
           )}
