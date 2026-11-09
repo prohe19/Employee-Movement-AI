@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -49,15 +50,15 @@ export function CreateModal({ onClose }: { onClose: () => void }) {
     </button>
   );
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(5,2,10,0.8)",
+        background: "rgba(5,2,10,0.82)",
         backdropFilter: "blur(3px)",
-        zIndex: 100,
+        zIndex: 1000,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -68,7 +69,7 @@ export function CreateModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(660px, 94vw)",
-          background: "var(--panel)",
+          background: "#120720",
           border: "1px solid rgba(177,74,237,0.45)",
           boxShadow: "0 30px 90px -20px rgba(0,0,0,0.85), 0 0 40px rgba(177,74,237,0.15)",
           padding: 28,
@@ -105,6 +106,7 @@ export function CreateModal({ onClose }: { onClose: () => void }) {
           Recommended flow: <span style={{ color: "#ff9dc0" }}>Transfer Form</span> → print &amp; approve → <span style={{ color: "#3fe0d0" }}>Announcement</span>.
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
