@@ -13,7 +13,7 @@ function jsRangeLabel(s: Signatory): string {
   return "Any JS";
 }
 
-export function SignatoriesPage() {
+export function SignatoriesPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [signatories, setSignatories] = useState<Signatory[]>([]);
@@ -48,15 +48,13 @@ export function SignatoriesPage() {
     }
   };
 
-  return (
-    <AppShell
-      eyebrow="// APPROVAL AUTHORITY"
-      title="Signatory Settings"
-      actions={isAdmin ? <button className="btn" onClick={() => setCreating((c) => !c)}>+ ADD SIGNATORY</button> : undefined}
-    >
+  const newBtn = isAdmin ? <button className="btn" onClick={() => setCreating((c) => !c)}>+ ADD SIGNATORY</button> : null;
+
+  const body = (
+    <>
       {error && <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 20, padding: "14px 18px", border: "1px solid rgba(177,74,237,0.3)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: embedded ? 14 : 20, padding: "14px 18px", border: "1px solid rgba(177,74,237,0.3)", background: "rgba(177,74,237,0.06)", fontFamily: "var(--font-mono)" }}>
         <span style={{ color: "#c98bff", fontSize: 14 }}>ⓘ</span>
         <span style={{ fontSize: 12, color: "rgba(255,150,190,0.75)", lineHeight: 1.5 }}>
           Signatory is auto-selected from the employee's <strong style={{ color: "var(--text)" }}>current JS</strong> — never the
@@ -122,6 +120,24 @@ export function SignatoriesPage() {
           );
         })}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <div className="eyebrow" style={{ margin: 0 }}>// APPROVAL AUTHORITY</div>
+          {newBtn}
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AppShell eyebrow="// APPROVAL AUTHORITY" title="Signatory Settings" actions={newBtn ?? undefined}>
+      {body}
     </AppShell>
   );
 }

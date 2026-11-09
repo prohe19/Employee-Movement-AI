@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { PrismLogo } from "../../components/PrismLogo";
 import { Stepper } from "./Stepper";
 import { MovementDetailsStep } from "./MovementDetailsStep";
 import { DetailsStep } from "./DetailsStep";
 import { PreviewStep } from "./PreviewStep";
-import { announcementToWizardState, emptyEmployee, WizardState } from "./wizardTypes";
-import { announcementsApi } from "../../api/endpoints";
+import { announcementToWizardState, emptyEmployee, transferFormToEmployee, WizardState } from "./wizardTypes";
+import { announcementsApi, transferFormsApi } from "../../api/endpoints";
 import type { MovementType } from "../../api/types";
 
 const STEP_META: Record<number, { title: string }> = {
@@ -33,21 +33,32 @@ function initialState(): WizardState {
 
 export function CreatePage() {
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
+  const tfId = searchParams.get("tf");
   const isEdit = Boolean(id);
   const [step, setStep] = useState(1);
   const [state, setState] = useState<WizardState>(initialState());
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(isEdit || Boolean(tfId));
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    announcementsApi
-      .get(id)
-      .then(({ announcement }) => setState(announcementToWizardState(announcement)))
-      .catch((e) => setLoadError(e.message ?? "Could not load this announcement"))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (id) {
+      setLoading(true);
+      announcementsApi
+        .get(id)
+        .then(({ announcement }) => setState(announcementToWizardState(announcement)))
+        .catch((e) => setLoadError(e.message ?? "Could not load this announcement"))
+        .finally(() => setLoading(false));
+    } else if (tfId) {
+      // Pre-fill a brand-new announcement from an approved transfer form.
+      setLoading(true);
+      transferFormsApi
+        .get(tfId)
+        .then(({ form }) => setState({ ...initialState(), movementType: form.movementType, employees: [transferFormToEmployee(form)] }))
+        .catch((e) => setLoadError(e.message ?? "Could not load the transfer form"))
+        .finally(() => setLoading(false));
+    }
+  }, [id, tfId]);
 
   const patch = (updates: Partial<WizardState>) => setState((s) => ({ ...s, ...updates }));
   const meta = STEP_META[step];

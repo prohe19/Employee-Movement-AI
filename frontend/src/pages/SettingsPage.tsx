@@ -1,12 +1,45 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { Tabs } from "../components/Tabs";
 import { InfoNote, TextInput } from "../components/ui";
 import { settingsApi } from "../api/endpoints";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import type { Setting } from "../api/types";
+import { TemplatesPage } from "./TemplatesPage";
+import { SignatoriesPage } from "./SignatoriesPage";
+
+type Tab = "general" | "templates" | "signatories";
+const TABS: { key: Tab; label: string }[] = [
+  { key: "general", label: "GENERAL" },
+  { key: "templates", label: "TEMPLATES" },
+  { key: "signatories", label: "SIGNATORIES" },
+];
 
 export function SettingsPage() {
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(tabParam && TABS.some((t) => t.key === tabParam) ? tabParam : "general");
+
+  const changeTab = (t: Tab) => {
+    setTab(t);
+    setParams(t === "general" ? {} : { tab: t }, { replace: true });
+  };
+
+  return (
+    <AppShell eyebrow="// CONFIGURATION" title="Settings">
+      <Tabs tabs={TABS} active={tab} onChange={changeTab} />
+      <div style={{ marginTop: 18 }}>
+        {tab === "general" && <GeneralSettings />}
+        {tab === "templates" && <TemplatesPage embedded />}
+        {tab === "signatories" && <SignatoriesPage embedded />}
+      </div>
+    </AppShell>
+  );
+}
+
+function GeneralSettings() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [settings, setSettings] = useState<Setting | null>(null);
@@ -46,12 +79,12 @@ export function SettingsPage() {
   };
 
   return (
-    <AppShell eyebrow="// CONFIGURATION" title="Settings">
-      {error && <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>}
-      {saved && <div className="alert alert-ok" style={{ marginTop: 18 }}>Settings saved.</div>}
+    <>
+      {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>{error}</div>}
+      {saved && <div className="alert alert-ok" style={{ marginBottom: 14 }}>Settings saved.</div>}
 
       {settings && (
-        <div className="panel" style={{ marginTop: 22, maxWidth: 720 }}>
+        <div className="panel" style={{ maxWidth: 720 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div style={{ gridColumn: "1 / -1" }}>
               <div className="label">// ANNOUNCEMENT NUMBER FORMAT</div>
@@ -88,6 +121,6 @@ export function SettingsPage() {
           )}
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
