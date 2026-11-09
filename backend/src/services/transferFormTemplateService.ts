@@ -119,44 +119,65 @@ export function renderTransferFormHtml(data: TransferFormData): string {
 <meta charset="utf-8" />
 <style>
   ${calibriFontFaceCss()}
-  @page { size: A4 portrait; margin: 10mm 9mm; }
+  @page { size: A4 portrait; margin: 8mm 9mm; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { font-family: 'Calibri', 'Carlito', Arial, sans-serif; color: #111; font-size: 9pt; line-height: 1.25; }
-  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-  .head img { height: 34px; }
-  .head .title { font-size: 13pt; font-weight: 700; letter-spacing: .5px; color: #2f2e79; }
+  body { font-family: 'Calibri', 'Carlito', Arial, sans-serif; color: #111; font-size: 8.5pt; line-height: 1.18; }
   table { border-collapse: collapse; width: 100%; }
-  .bx { border: 1px solid #333; }
-  .cbox { display: inline-block; width: 11px; height: 11px; border: 1px solid #333; text-align: center;
-          line-height: 10px; font-size: 9px; margin-right: 5px; vertical-align: middle; }
-  .toprow td { border: 1px solid #333; padding: 4px 6px; vertical-align: middle; }
-  .sec-title { background: #e9edf6; border: 1px solid #333; font-weight: 700; padding: 3px 6px; margin-top: 6px; }
+  /* document-control header (ITM-F-HR-001) */
+  .docctrl { margin-bottom: 5px; }
+  .docctrl td { border: 1px solid #333; padding: 2px 6px; vertical-align: middle; }
+  .docctrl .dc-logo { width: 22%; text-align: center; }
+  .docctrl .dc-logo img { height: 28px; display: inline-block; }
+  .docctrl .dc-hr { text-align: center; font-weight: 700; font-size: 11pt; line-height: 1.02; white-space: nowrap; }
+  .docctrl .dc-et { text-align: center; font-weight: 700; font-size: 11pt; letter-spacing: .3px; }
+  .docctrl .dc-fn { text-align: center; font-weight: 700; }
+  .docctrl .dc-fn b { display: block; font-size: 10pt; }
+  .docctrl .dc-l { width: 76px; }
+  .cbox { display: inline-block; width: 10px; height: 10px; border: 1px solid #333; text-align: center;
+          line-height: 9px; font-size: 8px; margin-right: 5px; vertical-align: middle; }
+  .toprow td { border: 1px solid #333; padding: 3px 6px; vertical-align: middle; }
+  .sec-title { background: #D9E2F3; border: 1px solid #333; font-weight: 700; padding: 2px 6px; margin-top: 4px; }
   /* Section 2 */
-  .info td { border: 1px solid #333; padding: 3px 6px; vertical-align: middle; }
+  .info td { border: 1px solid #333; padding: 2px 6px; vertical-align: middle; }
   .info .f-label { width: 130px; } .info .f-colon { width: 10px; } .info .f-ft { width: 26px; color: #555; }
   .info .f-val { min-width: 120px; }
   /* verification */
-  .verify td { border: 1px solid #333; padding: 3px 6px; vertical-align: top; }
+  .verify td { border: 1px solid #333; padding: 2px 6px; vertical-align: top; }
   .verify .vk { width: 26px; text-align: center; }
   /* sign blocks */
-  .signrow { display: flex; gap: 8px; margin-top: 6px; }
-  .signblock { flex: 1; border: 1px solid #333; padding: 5px 7px; }
-  .signhead { font-weight: 700; margin-bottom: 3px; }
+  .signrow { display: flex; gap: 6px; margin-top: 4px; }
+  .signblock { flex: 1; border: 1px solid #333; padding: 4px 6px; }
+  .signhead { font-weight: 700; margin-bottom: 2px; }
   .signtable td { border: none; padding: 1px 0; }
-  .signtable .sl { width: 62px; } .signtable .sc { width: 8px; }
-  .signtable .sv { border-bottom: 1px solid #999; height: 15px; }
-  .remark { border: 1px solid #333; padding: 5px 7px; min-height: 62px; }
-  .notes { margin-top: 8px; font-size: 8pt; color: #333; }
+  .signtable .sl { width: 60px; } .signtable .sc { width: 8px; }
+  .signtable .sv { border-bottom: 1px solid #999; height: 12px; }
+  .remark { border: 1px solid #333; padding: 4px 6px; min-height: 48px; }
+  .notes { margin-top: 6px; font-size: 8pt; color: #333; }
   .notes b { color: #111; }
 </style>
 </head>
 <body>
-  <div class="head">
-    <img src="${itmLogo()}" alt="ITM" />
-    <div class="title">EMPLOYEE TRANSFER FORM</div>
-    <div style="width:34px"></div>
-  </div>
+  <table class="docctrl">
+    <tr>
+      <td class="dc-logo" colspan="2"><img src="${itmLogo()}" alt="ITM" /></td>
+      <td class="dc-hr">HR<br />FORM</td>
+      <td class="dc-fn" colspan="2">Form Number<b>ITM-F-HR-001</b></td>
+    </tr>
+    <tr>
+      <td class="dc-l">Issued Date</td>
+      <td>1 November 2018</td>
+      <td class="dc-et" rowspan="2">EMPLOYEE TRANSFER</td>
+      <td class="dc-l">Revision</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td class="dc-l">Page</td>
+      <td>Page 1 of 1</td>
+      <td class="dc-l">Revision Date</td>
+      <td>&ndash;</td>
+    </tr>
+  </table>
 
   <table class="toprow">
     <tr>
