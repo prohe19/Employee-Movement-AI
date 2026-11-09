@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { Tabs } from "../components/Tabs";
 import { StatusPill } from "../components/ui";
 import { announcementsApi } from "../api/endpoints";
 import type { Announcement, Paginated } from "../api/types";
 import { formatUiDate, MOVEMENT_TYPE_LABELS, MOVEMENT_TYPES } from "../lib/format";
+import { TransferFormsPage } from "./TransferFormsPage";
 
 const STATUSES = ["Draft", "RequiresReview", "ReadyToGenerate", "Finalized", "Published", "Cancelled"];
 const PAGE_SIZE = 10;
 
+type RecTab = "announcements" | "transfer-forms";
+const REC_TABS: { key: RecTab; label: string }[] = [
+  { key: "announcements", label: "ANNOUNCEMENTS" },
+  { key: "transfer-forms", label: "TRANSFER FORMS" },
+];
+
 export function RecordsPage() {
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get("tab") as RecTab | null;
+  const [tab, setTab] = useState<RecTab>(tabParam === "transfer-forms" ? "transfer-forms" : "announcements");
+  const changeTab = (t: RecTab) => {
+    setTab(t);
+    setParams(t === "announcements" ? {} : { tab: t }, { replace: true });
+  };
   const [data, setData] = useState<Paginated<Announcement> | null>(null);
   const [search, setSearch] = useState("");
   const [movementType, setMovementType] = useState("");
@@ -56,17 +71,19 @@ export function RecordsPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
-    <AppShell
-      eyebrow="// ARCHIVE"
-      title="Announcement Records"
-      actions={
-        <Link to="/create" className="btn" style={{ textDecoration: "none" }}>
-          + NEW
-        </Link>
-      }
-    >
+    <AppShell eyebrow="// ARCHIVE" title="Records">
+      <Tabs tabs={REC_TABS} active={tab} onChange={changeTab} />
+
+      {tab === "transfer-forms" && (
+        <div style={{ marginTop: 18 }}>
+          <TransferFormsPage embedded />
+        </div>
+      )}
+
+      {tab === "announcements" && (
+      <>
       {/* filters */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20, fontFamily: "var(--font-mono)", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18, fontFamily: "var(--font-mono)", flexWrap: "wrap" }}>
         <input
           className="input"
           style={{ flex: 1, maxWidth: 340, minHeight: 40 }}
@@ -241,6 +258,8 @@ export function RecordsPage() {
           </button>
         </div>
       </div>
+      </>
+      )}
     </AppShell>
   );
 }

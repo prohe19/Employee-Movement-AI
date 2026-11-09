@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import type { Template } from "../api/types";
 import { formatUiDate } from "../lib/format";
 
-export function TemplatesPage() {
+export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -42,19 +42,12 @@ export function TemplatesPage() {
   };
 
   const tokens = selected?.placeholders?.tokens ?? [];
+  const newBtn = isAdmin ? (
+    <button className="btn" onClick={() => setCreating((c) => !c)}>+ NEW TEMPLATE</button>
+  ) : null;
 
-  return (
-    <AppShell
-      eyebrow="// TEMPLATE ENGINE"
-      title="Template Management"
-      actions={
-        isAdmin ? (
-          <button className="btn" onClick={() => setCreating((c) => !c)}>
-            + NEW TEMPLATE
-          </button>
-        ) : undefined
-      }
-    >
+  const body = (
+    <>
       {error && <div className="alert alert-error" style={{ marginTop: 18 }}>{error}</div>}
 
       {creating && (
@@ -75,7 +68,7 @@ export function TemplatesPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginTop: 22, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginTop: embedded ? 16 : 22, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {templates.length === 0 && (
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "rgba(255,150,190,0.5)" }}>No templates yet.</div>
@@ -139,6 +132,24 @@ export function TemplatesPage() {
           </InfoNote>
         </div>
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <div className="eyebrow" style={{ margin: 0 }}>// TEMPLATE ENGINE</div>
+          {newBtn}
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AppShell eyebrow="// TEMPLATE ENGINE" title="Template Management" actions={newBtn ?? undefined}>
+      {body}
     </AppShell>
   );
 }

@@ -1,20 +1,32 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { BrandLockup } from "./PrismLogo";
+import { CreateModal } from "./CreateModal";
 import { useAuth } from "../auth/AuthContext";
 
 const NAV_ITEMS = [
   { label: "DASHBOARD", to: "/" },
-  { label: "CREATE", to: "/create" },
-  { label: "TRANSFER FORMS", to: "/transfer-forms" },
   { label: "RECORDS", to: "/records" },
-  { label: "TEMPLATES", to: "/templates" },
-  { label: "SIGNATORIES", to: "/signatories" },
   { label: "SETTINGS", to: "/settings" },
 ];
+
+const navStyle = (isActive: boolean) => ({
+  padding: isActive ? "8px 14px" : "8px 12px",
+  fontSize: 12,
+  fontWeight: isActive ? 700 : 600,
+  letterSpacing: "0.06em",
+  cursor: "pointer",
+  color: isActive ? "#fff" : "rgba(255,150,190,0.7)",
+  background: isActive ? "linear-gradient(180deg,#ff2a6d,#d61a56)" : "transparent",
+  boxShadow: isActive ? "0 0 16px rgba(255,42,109,0.5)" : "none",
+  border: "none" as const,
+  fontFamily: "var(--font-head)",
+});
 
 export function NavBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
   const initials = (user?.fullName || "?")
     .split(" ")
     .map((p) => p[0])
@@ -35,26 +47,15 @@ export function NavBar() {
     >
       <BrandLockup />
       <div style={{ display: "flex", alignItems: "center", gap: 2, fontFamily: "var(--font-head)" }}>
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            style={({ isActive }) => ({
-              padding: isActive ? "8px 14px" : "8px 12px",
-              fontSize: 12,
-              fontWeight: isActive ? 700 : 600,
-              letterSpacing: "0.06em",
-              cursor: "pointer",
-              color: isActive ? "#fff" : "rgba(255,150,190,0.7)",
-              background: isActive ? "linear-gradient(180deg,#ff2a6d,#d61a56)" : "transparent",
-              boxShadow: isActive ? "0 0 16px rgba(255,42,109,0.5)" : "none",
-            })}
-          >
+        <NavLink to="/" end style={({ isActive }) => navStyle(isActive)}>DASHBOARD</NavLink>
+        <button onClick={() => setCreateOpen(true)} style={navStyle(false)}>CREATE</button>
+        {NAV_ITEMS.slice(1).map((item) => (
+          <NavLink key={item.to} to={item.to} style={({ isActive }) => navStyle(isActive)}>
             {item.label}
           </NavLink>
         ))}
       </div>
+      {createOpen && <CreateModal onClose={() => setCreateOpen(false)} />}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           className="btn-ghost"

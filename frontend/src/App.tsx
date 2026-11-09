@@ -7,10 +7,7 @@ import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CreatePage } from "./pages/create/CreatePage";
 import { RecordsPage } from "./pages/RecordsPage";
-import { TransferFormsPage } from "./pages/TransferFormsPage";
 import { TransferFormEditPage } from "./pages/TransferFormEditPage";
-import { TemplatesPage } from "./pages/TemplatesPage";
-import { SignatoriesPage } from "./pages/SignatoriesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 function FullScreenLoader() {
@@ -81,14 +78,7 @@ export function App() {
           </RequireAuth>
         }
       />
-      <Route
-        path="/transfer-forms"
-        element={
-          <RequireAuth>
-            <TransferFormsPage />
-          </RequireAuth>
-        }
-      />
+      <Route path="/transfer-forms" element={<Navigate to="/records?tab=transfer-forms" replace />} />
       <Route
         path="/transfer-forms/new"
         element={
@@ -113,22 +103,8 @@ export function App() {
           </RequireAuth>
         }
       />
-      <Route
-        path="/templates"
-        element={
-          <RequireAuth>
-            <TemplatesPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/signatories"
-        element={
-          <RequireAuth>
-            <SignatoriesPage />
-          </RequireAuth>
-        }
-      />
+      <Route path="/templates" element={<Navigate to="/settings?tab=templates" replace />} />
+      <Route path="/signatories" element={<Navigate to="/settings?tab=signatories" replace />} />
       <Route
         path="/settings"
         element={

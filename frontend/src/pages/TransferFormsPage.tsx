@@ -5,7 +5,7 @@ import { transferFormsApi } from "../api/endpoints";
 import type { TransferForm } from "../api/types";
 import { formatUiDate, MOVEMENT_TYPE_LABELS } from "../lib/format";
 
-export function TransferFormsPage() {
+export function TransferFormsPage({ embedded = false }: { embedded?: boolean }) {
   const [forms, setForms] = useState<TransferForm[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,19 +54,17 @@ export function TransferFormsPage() {
     }
   };
 
-  return (
-    <AppShell
-      eyebrow="// TRANSFER FORMS"
-      title="Employee Transfer Forms"
-      actions={
-        <Link to="/transfer-forms/new" className="btn" style={{ textDecoration: "none" }}>
-          + NEW FORM
-        </Link>
-      }
-    >
+  const newBtn = (
+    <Link to="/transfer-forms/new" className="btn" style={{ textDecoration: "none" }}>
+      + NEW FORM
+    </Link>
+  );
+
+  const body = (
+    <>
       <input
         className="input"
-        style={{ maxWidth: 340, minHeight: 40, marginTop: 20 }}
+        style={{ maxWidth: 340, minHeight: 40, marginTop: embedded ? 14 : 20 }}
         placeholder="Search name, ID, doc number…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -77,8 +75,8 @@ export function TransferFormsPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr 1.2fr",
-            minWidth: 900,
+            gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr 1.5fr",
+            minWidth: 960,
             padding: "12px 16px",
             background: "rgba(177,74,237,0.08)",
             borderBottom: "1px solid rgba(255,42,109,0.28)",
@@ -107,8 +105,8 @@ export function TransferFormsPage() {
             key={f.id}
             style={{
               display: "grid",
-              gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr 1.2fr",
-              minWidth: 900,
+              gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr 1.5fr",
+              minWidth: 960,
               alignItems: "center",
               padding: "13px 16px",
               borderBottom: "1px solid rgba(177,74,237,0.1)",
@@ -126,6 +124,14 @@ export function TransferFormsPage() {
             <span style={{ color: "rgba(255,150,190,0.6)", fontSize: 10.5 }}>{formatUiDate(f.effectiveDate)}</span>
             <span style={{ color: "rgba(255,150,190,0.6)", fontSize: 10.5 }}>{formatUiDate(f.createdAt)}</span>
             <span style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <Link
+                to={`/create?tf=${f.id}`}
+                title="Create an announcement based on this approved transfer form"
+                className="btn-ghost"
+                style={{ height: 28, padding: "0 9px", fontSize: 10, textDecoration: "none", lineHeight: "28px", borderColor: "rgba(23,169,155,0.5)", color: "#3fe0d0" }}
+              >
+                ANNOUNCE →
+              </Link>
               <Link to={`/transfer-forms/${f.id}`} className="btn-ghost" style={{ height: 28, padding: "0 9px", fontSize: 10, textDecoration: "none", lineHeight: "28px" }}>
                 EDIT
               </Link>
@@ -143,6 +149,24 @@ export function TransferFormsPage() {
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <div className="eyebrow" style={{ margin: 0 }}>// TRANSFER FORMS</div>
+          {newBtn}
+        </div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AppShell eyebrow="// TRANSFER FORMS" title="Employee Transfer Forms" actions={newBtn}>
+      {body}
     </AppShell>
   );
 }

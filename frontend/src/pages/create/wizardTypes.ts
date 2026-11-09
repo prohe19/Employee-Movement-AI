@@ -1,4 +1,4 @@
-import type { Announcement, MovementType } from "../../api/types";
+import type { Announcement, MovementType, TransferForm } from "../../api/types";
 
 /** An editable employee row entered manually in the movement-details step. */
 export interface EditableEmployee {
@@ -95,6 +95,31 @@ export function employeeToPayload(emp: EditableEmployee) {
     photoUrl: str(emp.photoUrl),
     photoKey: str(emp.photoKey),
   };
+}
+
+/** Builds a wizard employee row from an approved transfer form (TF → Announcement flow). */
+export function transferFormToEmployee(f: TransferForm): EditableEmployee {
+  const d = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : "");
+  const e = emptyEmployee();
+  e.title = f.title ?? "Mr.";
+  e.employeeName = f.employeeName;
+  e.employeeId = f.employeeId ?? "";
+  e.currentJs = f.levelJs != null ? String(f.levelJs) : "";
+  e.newJs = f.levelJp != null ? String(f.levelJp) : "";
+  e.currentPosition = f.positionFrom ?? "";
+  e.newPosition = f.positionTo ?? "";
+  e.currentDepartment = f.departmentFrom ?? "";
+  e.newDepartment = f.departmentTo ?? "";
+  e.currentDivision = f.divisionFrom ?? "";
+  e.newDivision = f.divisionTo ?? "";
+  e.currentCompany = f.companyFrom ?? "";
+  e.newCompany = f.companyTo ?? "";
+  e.currentLocation = f.locationFrom ?? "";
+  e.newLocation = f.locationTo ?? "";
+  const eff = d(f.effectiveDate);
+  if (f.movementType === "Assignment") e.assignmentStartDate = eff;
+  else e.effectiveDate = eff;
+  return e;
 }
 
 /** Seeds the wizard from an existing announcement (for the edit flow). */
