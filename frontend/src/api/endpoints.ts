@@ -102,6 +102,7 @@ export const transferFormsApi = {
   update: (id: string, input: unknown) => api.patch<{ form: TransferForm }>(`/transfer-forms/${id}`, input),
   remove: (id: string) => api.del<void>(`/transfer-forms/${id}`),
   generatePdf: (id: string) => api.post<{ form: TransferForm }>(`/transfer-forms/${id}/generate-pdf`),
+  preview: (input: unknown) => api.post<{ html: string }>("/transfer-forms/preview", input),
 };
 
 // ---- Templates / Signatories / Settings / Dashboard ----

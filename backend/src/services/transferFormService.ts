@@ -113,13 +113,68 @@ function toTemplateData(form: TransferForm): TransferFormData {
   };
 }
 
+/**
+ * Shape accepted by the live-preview endpoint: the edit page's (possibly partial, unsaved)
+ * fields as raw JSON. `effectiveDate` arrives as an ISO string, not a parsed Date, so this
+ * is intentionally looser than `TransferFormInput`.
+ */
+type TransferFormPreviewInput = Partial<Omit<TransferFormInput, "effectiveDate">> & {
+  effectiveDate?: string | Date | null;
+};
+
+/** Renders the transfer-form HTML straight from edit-page input (no save) for live preview. */
+export function renderTransferFormPreviewHtml(input: TransferFormPreviewInput): string {
+  const s = (v: string | null | undefined) => v ?? "";
+  const ft = (a: string | null | undefined, b: string | null | undefined) => ({ from: s(a), to: s(b) });
+  const tt = input.transferType;
+  const effectiveDate =
+    input.effectiveDate instanceof Date
+      ? input.effectiveDate
+      : input.effectiveDate && !Number.isNaN(Date.parse(input.effectiveDate))
+        ? new Date(input.effectiveDate)
+        : null;
+  const data: TransferFormData = {
+    docNumber: s(input.docNumber),
+    transferType: tt === "between_companies" || tt === "within_company" ? tt : null,
+    employeeName: s(input.employeeName),
+    employeeId: s(input.employeeId),
+    levelJs: input.levelJs != null ? String(input.levelJs) : "",
+    levelJp: input.levelJp != null ? String(input.levelJp) : "",
+    position: ft(input.positionFrom, input.positionTo),
+    costCenter: ft(input.costCenterFrom, input.costCenterTo),
+    section: ft(input.sectionFrom, input.sectionTo),
+    department: ft(input.departmentFrom, input.departmentTo),
+    division: ft(input.divisionFrom, input.divisionTo),
+    location: ft(input.locationFrom, input.locationTo),
+    company: ft(input.companyFrom, input.companyTo),
+    effectiveDate,
+    verification: {
+      mpp: !!input.vMpp,
+      orgStructureJe: !!input.vOrgStructureJe,
+      competencyGap: !!input.vCompetencyGap,
+      jpGap: !!input.vJpGap,
+      yearInPosition: !!input.vYearInPosition,
+      transferReason: !!input.vTransferReason,
+      others: !!input.vOthers,
+    },
+  };
+  return renderTransferFormHtml(data);
+}
+
+/** Filesystem-safe, human-readable segment for PDF filenames. */
+function safeSegment(v: string | null | undefined): string {
+  return (v ?? "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50);
+}
+
 export async function generateTransferFormPdf(id: string, userId: string) {
   const form = await getTransferForm(id);
   const html = renderTransferFormHtml(toTemplateData(form));
   const pdfBuffer = await renderTransferFormPdf(html);
 
   const storage = getStorageDriver();
-  const key = `transfer-forms/${form.id}/${Date.now()}.pdf`;
+  const namePart = safeSegment(form.employeeName) || "Form";
+  const docPart = form.docNumber ? `-${safeSegment(form.docNumber)}` : "";
+  const key = `transfer-forms/${form.id}/ITM-Transfer-Form-${namePart}${docPart}.pdf`;
   const stored = await storage.save({ buffer: pdfBuffer, key, contentType: "application/pdf" });
 
   const updated = await prisma.transferForm.update({

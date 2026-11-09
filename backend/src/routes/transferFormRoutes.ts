@@ -9,6 +9,7 @@ import {
   generateTransferFormPdf,
   getTransferForm,
   listTransferForms,
+  renderTransferFormPreviewHtml,
   updateTransferForm,
 } from "../services/transferFormService";
 
@@ -16,6 +17,14 @@ const router = Router();
 router.use(requireAuth);
 
 const listQuery = z.object({ search: z.string().optional() });
+
+// Live preview: render the form HTML from (possibly unsaved, partial) edit-page data.
+router.post(
+  "/preview",
+  asyncHandler(async (req, res) => {
+    res.json({ html: renderTransferFormPreviewHtml(req.body ?? {}) });
+  })
+);
 
 router.get(
   "/",

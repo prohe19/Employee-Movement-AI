@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { TextInput } from "../components/ui";
+import { TransferFormPreview } from "../components/TransferFormPreview";
 import { transferFormsApi } from "../api/endpoints";
 import { ApiError } from "../api/client";
 import { COMPANIES, SITES } from "../lib/options";
 import { toDateInputValue } from "../lib/format";
+import { downloadFile, safeFileName } from "../lib/download";
 import type { TransferForm } from "../api/types";
 
 const TITLES = ["Mr.", "Ms.", "Mrs."];
@@ -83,6 +85,8 @@ export function TransferFormEditPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!isNew);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const previewSeq = useRef(0);
 
   useEffect(() => {
     if (isNew) return;
@@ -93,6 +97,22 @@ export function TransferFormEditPage() {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Debounced live preview: re-render the official form HTML from current (unsaved) edits.
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(async () => {
+      const seq = ++previewSeq.current;
+      try {
+        const { html } = await transferFormsApi.preview(payload());
+        if (seq === previewSeq.current) setPreviewHtml(html);
+      } catch {
+        // keep the last good preview on a transient error
+      }
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, loading]);
 
   const set = (patch: Partial<FormState>) => setState((s) => ({ ...s, ...patch }));
 
@@ -146,7 +166,11 @@ export function TransferFormEditPage() {
     if (!savedId) return;
     try {
       const { form } = await transferFormsApi.generatePdf(savedId);
-      if (form.pdfUrl) window.open(form.pdfUrl, "_blank");
+      if (form.pdfUrl) {
+        const docType = form.movementType === "Assignment" ? "Assignment" : "Transfer";
+        const namePart = safeFileName(form.employeeName, "Form");
+        await downloadFile(form.pdfUrl, `ITM ${docType} Form - ${namePart}.pdf`);
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "PDF generation failed");
     }
@@ -187,6 +211,8 @@ export function TransferFormEditPage() {
     <AppShell eyebrow="// TRANSFER FORM" title={isNew ? "New Transfer Form" : "Edit Transfer Form"}>
       {error && <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>}
 
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.05fr", gap: 20, alignItems: "start" }}>
+        <div>
       <div className="panel" style={{ marginTop: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <div>
@@ -244,10 +270,32 @@ export function TransferFormEditPage() {
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-        <button className="btn-ghost" onClick={() => navigate("/transfer-forms")}>← BACK</button>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16, flexWrap: "wrap" }}>
+        <button className="btn-ghost" onClick={() => navigate("/records?tab=transfer-forms")}>← BACK</button>
         <button className="btn-ghost" onClick={save} disabled={!canSave || saving}>{saving ? "SAVING…" : "SAVE"}</button>
         <button className="btn" onClick={saveAndPdf} disabled={!canSave || saving}>SAVE &amp; DOWNLOAD PDF</button>
+      </div>
+        </div>
+
+        {/* live preview */}
+        <div style={{ position: "sticky", top: 16, marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "1px solid rgba(177,74,237,0.28)", background: "rgba(177,74,237,0.03)", fontFamily: "var(--font-mono)" }}>
+            <span style={{ fontSize: 11.5, color: "var(--text)", fontWeight: 700 }}>LIVE PREVIEW · ITM-F-HR-001</span>
+            <span style={{ fontSize: 10.5, color: "rgba(255,150,190,0.45)" }}>A4 · PORTRAIT</span>
+          </div>
+          <div style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(177,74,237,0.2)", padding: 16 }}>
+            {previewHtml ? (
+              <TransferFormPreview html={previewHtml} />
+            ) : (
+              <div style={{ color: "rgba(255,150,190,0.5)", fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "center", padding: 40 }}>
+                Updating preview…
+              </div>
+            )}
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,150,190,0.45)", lineHeight: 1.5 }}>
+            This is exactly what the generated PDF will look like. Edits update it automatically.
+          </div>
+        </div>
       </div>
     </AppShell>
   );
